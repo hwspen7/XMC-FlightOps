@@ -1,0 +1,12 @@
+{
+  "name": "xplane-motion-controller",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web dev",
+    "dev:server": "pnpm --dir apps/server start:dev",
+    "build:web": "pnpm --dir apps/web build",
+    "build:server": "pnpm --dir apps/server build"
+  }
+}
