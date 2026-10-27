@@ -1,12 +1,12 @@
 {
   "name": "xplane-motion-controller",
-  "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev:web": "pnpm --dir apps/web dev",
-    "dev:server": "pnpm --dir apps/server start:dev",
-    "build:web": "pnpm --dir apps/web build",
-    "build:server": "pnpm --dir apps/server build"
+    "build": "pnpm --filter @xplane/shared build && pnpm --filter @xplane/web build && pnpm --filter @xplane/server build",
+    "dev:web": "pnpm --filter @xplane/web dev",
+    "dev:server": "pnpm --filter @xplane/shared build && pnpm --filter @xplane/server start:dev",
+    "start:server": "pnpm --filter @xplane/server start:prod",
+    "test": "pnpm --filter @xplane/web test && pnpm --filter @xplane/server test",
+    "typecheck": "pnpm --filter @xplane/shared build && pnpm --filter @xplane/web typecheck && pnpm --filter @xplane/server typecheck"
   }
 }

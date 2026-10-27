@@ -1,23 +1,19 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
-    "removeComments": true,
+    "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": ".",
-    "incremental": true,
-    "skipLibCheck": true,
     "strict": true,
-    "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node"]
-  }
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

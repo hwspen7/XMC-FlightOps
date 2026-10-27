@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Reviewed build scripts required by Vite.
+allowBuilds:
+  esbuild: true
