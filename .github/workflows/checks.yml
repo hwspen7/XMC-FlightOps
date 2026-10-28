@@ -28,3 +28,24 @@ jobs:
         run: pnpm build
       - name: Test
         run: pnpm test
+
+  native-core:
+    name: Native core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Windows native tests
+        if: runner.os == 'Windows'
+        run: cmake -S native/xplane-plugin -B build/native -A x64
+      - name: Configure Unix native tests
+        if: runner.os != 'Windows'
+        run: cmake -S native/xplane-plugin -B build/native -DCMAKE_BUILD_TYPE=Release
+      - name: Build native tests
+        run: cmake --build build/native --config Release
+      - name: Run native tests
+        run: ctest --test-dir build/native -C Release --output-on-failure

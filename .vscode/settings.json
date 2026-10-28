@@ -1,0 +1,5 @@
+{
+  "cmake.sourceDirectory": "${workspaceFolder}/native/xplane-plugin",
+  "cmake.buildDirectory": "${workspaceFolder}/build/native",
+  "cmake.configureOnOpen": false
+}

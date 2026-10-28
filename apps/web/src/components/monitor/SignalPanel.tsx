@@ -15,7 +15,8 @@ export function SignalPanel({ connected, status }: Props) {
     <div className="card-heading"><div><span className="micro-label">DEVICE DIAGNOSTICS</span><h2>Connectivity & input health</h2></div><span className="tag-outline">READ ONLY</span></div>
     <div className="signal-stack">
       <Signal title="Monitoring gateway" connected={connected} detail="Secure browser connection" icon={Network}/>
-      <Signal title="X-Plane telemetry" connected={connected&&sim.reachable} detail={`${sim.host}:${sim.port}`} icon={Wifi}/>
+      <Signal title="X-Plane telemetry" connected={connected&&sim.reachable} detail={`${sim.transport === 'native' ? 'Native plugin' : 'Legacy UDP'} / ${sim.host}:${sim.port}`} icon={Wifi}/>
+      {sim.transport === 'native' && <Signal title="Native control override" connected={connected && sim.nativeArmed === true} detail={sim.nativeArmed === null ? 'Waiting for plugin status' : sim.nativeArmed ? 'Plugin has accepted the arm request' : 'Plugin is not armed'} icon={Shield}/>}
       <Signal title="Mobile controller" connected={connected&&status.armed} detail={status.armed?'Controller owns flight axes':'No controller armed'} icon={Smartphone}/>
       <Signal title="Simulator control output" connected={sim.outputEnabled} detail={sim.outputEnabled?'Writing enabled by server configuration':'Disabled by server configuration'} icon={Shield}/>
     </div>

@@ -3,6 +3,7 @@ import { createSocket, type Socket } from 'node:dgram';
 import { isIP } from 'node:net';
 import type { AuxiliaryAction, FlightTelemetry, SimulatorStatus } from '@xplane/shared';
 import { settings } from '../configuration/settings';
+import { NativeBridgeService } from '../native/native-bridge.service';
 import { COMMAND_PATHS, encodeCommand } from './commands';
 import { decodeSubscriptions, encodeDataref, encodeSubscription } from './packets';
 import { applyTelemetryValue, definitionForIndex, emptyTelemetry, TELEMETRY_DEFINITIONS } from './telemetry';
@@ -23,8 +24,16 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
   private readonly fieldReceivedAt: Record<string, number> = {};
   private probeTimer: ReturnType<typeof setInterval> | undefined;
   private active = false;
+  private legacyStarted = false;
+
+  constructor(private readonly native: NativeBridgeService) {}
 
   onModuleInit(): void {
+    if (settings.transport === 'native') {
+      this.logger.log('Using native X-Plane plugin transport; legacy UDP injection disabled');
+      return;
+    }
+    this.legacyStarted = true;
     this.socket.on('error', (error) => this.logger.warn(`UDP socket error: ${error.message}`));
     this.socket.on('message', (packet, source) => {
       if (source.port !== settings.xplanePort) return;
@@ -50,6 +59,7 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
   }
 
   status(): SimulatorStatus {
+    if (settings.transport === 'native') return this.native.status();
     const now = Date.now();
     const reachable = this.lastHeartbeat !== 0 && now - this.lastHeartbeat < 5500;
     const recentTelemetry = this.telemetry.receivedAt !== null && now - this.telemetry.receivedAt < 2000;
@@ -62,7 +72,7 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
       }
     }
     return {
-      reachable, outputEnabled: settings.outputEnabled, host: settings.xplaneHost, port: settings.xplanePort,
+      reachable, transport: 'udp', outputEnabled: settings.outputEnabled, host: settings.xplaneHost, port: settings.xplanePort,
       telemetry, telemetryFresh: reachable && recentTelemetry, lastHeartbeatAgeMs: this.lastHeartbeat ? now - this.lastHeartbeat : null,
       receivedFields, subscribedFields: TELEMETRY_DEFINITIONS.length,
     };
@@ -70,6 +80,11 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
 
   activate(): void {
     if (this.active || !settings.outputEnabled) return;
+    if (settings.transport === 'native') {
+      this.active = true;
+      this.native.activate();
+      return;
+    }
     this.active = true;
     this.send(OVERRIDE_DATAREF, 1);
     this.send(ROLL_DATAREF, 0);
@@ -78,18 +93,21 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
 
   update(roll: number, pitch: number): void {
     if (!this.active || !settings.outputEnabled) return;
+    if (settings.transport === 'native') { this.native.update(roll, pitch); return; }
     this.send(OVERRIDE_DATAREF, 1);
     this.send(ROLL_DATAREF, roll);
     this.send(PITCH_DATAREF, pitch);
   }
 
   throttle(ratio: number): boolean {
+    if (settings.transport === 'native') return this.active && this.native.throttle(ratio);
     if (!this.active || !settings.outputEnabled || !this.status().reachable) return false;
     this.send(THROTTLE_DATAREF, ratio);
     return true;
   }
 
   action(action: AuxiliaryAction): boolean {
+    if (settings.transport === 'native') return this.active && this.native.action(action);
     if (!this.active || !settings.outputEnabled || !this.status().reachable) return false;
     this.socket.send(encodeCommand(COMMAND_PATHS[action]), settings.xplanePort, settings.xplaneHost);
     return true;
@@ -97,6 +115,7 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
 
   deactivate(): void {
     if (!this.active) return;
+    if (settings.transport === 'native') { this.native.deactivate(); this.active = false; return; }
     this.send(ROLL_DATAREF, 0);
     this.send(PITCH_DATAREF, 0);
     this.send(OVERRIDE_DATAREF, 0);
@@ -115,6 +134,7 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
+    if (!this.legacyStarted) return;
     if (this.probeTimer) clearInterval(this.probeTimer);
     this.deactivate();
     if (settings.probeEnabled) {

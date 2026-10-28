@@ -1,0 +1,8 @@
+# Place controller.conf next to the plugin's 64 directory.
+# Replace token with a cryptographically random 32+ character shared secret.
+token=REPLACE_WITH_RANDOM_SECRET_32_CHARACTERS
+# Loopback only when NestJS runs on the X-Plane computer.
+bind_address=127.0.0.1
+peer_address=127.0.0.1
+listen_port=49051
+telemetry_port=49052

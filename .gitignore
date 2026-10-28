@@ -10,3 +10,10 @@ coverage/
 certs/*.pem
 certs/*.crt
 certs/*.key
+build/
+CMakeFiles/
+CMakeCache.txt
+controller.conf
+*.xpl
+.vs/
+native/.vscode/

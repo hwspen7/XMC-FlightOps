@@ -43,6 +43,8 @@ export interface FlightTelemetry {
 }
 
 export interface SimulatorStatus {
+  transport?: 'udp' | 'native';
+  nativeArmed?: boolean | null;
   reachable: boolean;
   outputEnabled: boolean;
   host: string;
