@@ -26,4 +26,16 @@ describe('native transport protocol', () => {
     expect(() => encodeNativeControl(TOKEN, 8, 2, 0)).toThrow();
     expect(() => encodeNativeAction(TOKEN, 'unknown')).toThrow();
   });
+  it('parses native flight-loop counters separately from aircraft telemetry', () => {
+    const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|rollDegrees=3|armError=none|nativeLoopHz=60|nativeAppliedFrames=120|nativeSkippedSeq=2|nativeMaxGapMs=34|nativeMaxApplyUs=180|nativeControlAgeMs=5|nativeAckSeq=125`);
+    expect(parseNativeTelemetry(packet, TOKEN)).toEqual({
+      armed: true, armError: 'none', values: { rollDegrees: 3 },
+      metrics: { loopHz: 60, appliedFrames: 120, skippedSequences: 2,
+        maximumInputGapMs: 34, maximumApplyUs: 180, controlAgeMs: 5, lastAckSequence: 125 },
+    });
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|nativeLoopHz=60|nativeLoopHz=70`), TOKEN)).toBeNull();
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|nativeAckSeq=-1`), TOKEN)).toBeNull();
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|nativeAckSeq=1.5`), TOKEN)).toBeNull();
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|nativeAckSeq=9007199254740992`), TOKEN)).toBeNull();
+  });
 });

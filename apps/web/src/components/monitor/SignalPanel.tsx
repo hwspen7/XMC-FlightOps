@@ -35,7 +35,16 @@ export function SignalPanel({ connected, status }: Props) {
       <div><span>DEAD-MAN TIMEOUT</span><strong>{ctl.timeoutMs} <small>MS</small></strong></div>
       <div><span>LAST AUXILIARY INPUT</span><strong className="last-action">{ctl.lastAction??'NONE'}</strong></div>
     </div>
+    {sim.transport === 'native' && <div className="diagnostic-grid" aria-label="Native real-time flight loop measurements">
+      <div><span>NATIVE FLIGHT LOOP</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.loopHz ?? null) : '---'} <small>HZ</small></strong></div>
+      <div><span>NATIVE APPLIED FRAMES</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.appliedFrames ?? null) : '---'}</strong></div>
+      <div><span>SKIPPED SEQUENCE IDS</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.skippedSequences ?? null) : '---'}</strong></div>
+      <div><span>MAX CONTROL GAP</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.maximumInputGapMs ?? null) : '---'} <small>MS</small></strong></div>
+      <div><span>MAX NATIVE APPLY</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.maximumApplyUs ?? null) : '---'} <small>US</small></strong></div>
+      <div><span>CONTROL AGE</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.controlAgeMs ?? null) : '---'} <small>MS</small></strong></div>
+      <div><span>FEEDBACK RTT</span><strong>{connected ? displayValue(sim.nativeDiagnostics?.feedbackRoundTripMs ?? null) : '---'} <small>MS</small></strong></div>
+    </div>}
     <div className="pilot-input"><div><span>PHONE ROLL</span><strong>{ctl.inputRoll===null?'---':percentDeflection(ctl.inputRoll)}</strong><div className="input-gauge"><i style={{left:`${50+47*(ctl.inputRoll??0)}%`}}/></div></div><div><span>PHONE PITCH</span><strong>{ctl.inputPitch===null?'---':percentDeflection(ctl.inputPitch)}</strong><div className="input-gauge"><i style={{left:`${50+47*(ctl.inputPitch??0)}%`}}/></div></div></div>
-    <div className="signal-note"><Activity size={15}/> Aircraft measurements and mobile inputs are shown separately. They are not expected to match instantaneously.</div>
+    <div className="signal-note"><Activity size={15}/> Native feedback RTT includes the 10 Hz telemetry interval; it is not actual one-way flight-control or aircraft response latency.</div>
   </section>;
 }

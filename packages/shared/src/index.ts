@@ -51,10 +51,25 @@ export type NativeArmError =
   | 'readonly-roll-input' | 'readonly-pitch-input'
   | 'roll-override-busy' | 'pitch-override-busy';
 
+// Native diagnostics are read-only and sampled from the X-Plane flight loop.
+// feedbackRoundTripMs includes the telemetry reporting interval. It is NOT
+// the one-way control or visual aircraft-response latency.
+export interface NativeControlDiagnostics {
+  loopHz: number | null;
+  appliedFrames: number | null;
+  skippedSequences: number | null;
+  maximumInputGapMs: number | null;
+  maximumApplyUs: number | null;
+  controlAgeMs: number | null;
+  lastAckSequence: number | null;
+  feedbackRoundTripMs: number | null;
+}
+
 export interface SimulatorStatus {
   transport?: 'udp' | 'native';
   nativeArmed?: boolean | null;
   nativeArmError?: NativeArmError | null;
+  nativeDiagnostics?: NativeControlDiagnostics | null;
   reachable: boolean;
   outputEnabled: boolean;
   host: string;

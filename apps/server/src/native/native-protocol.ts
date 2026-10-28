@@ -1,5 +1,19 @@
 import type { FlightTelemetry, NativeArmError } from '@xplane/shared';
 
+// Wire metrics are distinct from flight model DataRefs. Unknown keys still fail closed.
+export const NATIVE_METRIC_FIELDS = {
+  nativeLoopHz: 'loopHz',
+  nativeAppliedFrames: 'appliedFrames',
+  nativeSkippedSeq: 'skippedSequences',
+  nativeMaxGapMs: 'maximumInputGapMs',
+  nativeMaxApplyUs: 'maximumApplyUs',
+  nativeControlAgeMs: 'controlAgeMs',
+  nativeAckSeq: 'lastAckSequence',
+} as const;
+
+export type NativeMetricField = keyof typeof NATIVE_METRIC_FIELDS;
+export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[NativeMetricField], number>>;
+
 export const NATIVE_FIELDS = [
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
   'groundSpeedKnots', 'altitudeFeet', 'verticalSpeedFpm', 'magneticHeadingDegrees',
@@ -27,6 +41,7 @@ export interface NativeSample {
   armed: boolean;
   armError: NativeArmError | null;
   values: Partial<Record<(typeof NATIVE_FIELDS)[number], number>>;
+  metrics?: NativeMetricValues;
 }
 
 export function parseNativeTelemetry(packet: Buffer, token: string): NativeSample | null {
@@ -35,6 +50,8 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
   if (fields[0] !== 'XMT1' || fields[1] !== token || !/^armed=[01]$/.test(fields[2] ?? '')) return null;
   const values: NativeSample['values'] = {};
   let armError: NativeArmError | null = null;
+  const metrics: NativeMetricValues = {};
+  const seenMetrics = new Set<string>();
   for (const field of fields.slice(3)) {
     const index = field.indexOf('=');
     if (index <= 0) return null;
@@ -45,13 +62,22 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
       armError = value as NativeArmError;
       continue;
     }
+    if (Object.prototype.hasOwnProperty.call(NATIVE_METRIC_FIELDS, key)) {
+      const name = NATIVE_METRIC_FIELDS[key as NativeMetricField];
+      if (seenMetrics.has(key) || value.length > 16 || !/^(0|[1-9]\d*)$/.test(value)) return null;
+      const parsed = Number(value);
+      if (!Number.isSafeInteger(parsed) || parsed > 1_000_000_000) return null;
+      metrics[name] = parsed;
+      seenMetrics.add(key);
+      continue;
+    }
     if (!KEYS.has(key) || value.length > 32 || value.trim() === '') return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
     values[key as keyof typeof values] = parsed;
   }
   if (fields[2] === 'armed=1' && armError !== null && armError !== 'none') return null;
-  return { armed: fields[2] === 'armed=1', armError, values };
+  return { armed: fields[2] === 'armed=1', armError, values, ...(seenMetrics.size ? { metrics } : {}) };
 }
 
 export function encodeNativeControl(token: string, sequence: number, roll: number, pitch: number): Buffer {
