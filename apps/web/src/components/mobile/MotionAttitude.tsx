@@ -10,7 +10,7 @@ export function MotionAttitude({ output, calibrated }: Props) {
   const boundedPitch = Math.min(50, Math.max(-50, pitch));
   return (
     <div className="motion-attitude">
-      <svg viewBox="0 0 360 340" role="img" aria-label="Phone tilt and yoke reference display">
+      <svg viewBox="0 0 360 340" role="img" aria-label="Phone yoke command reference display">
         <defs>
           <clipPath id={`${prefix}-circle`}><circle cx="180" cy="172" r="144" /></clipPath>
           <linearGradient id={`${prefix}-sky`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#127ac4"/><stop offset="1" stopColor="#4fa7e2"/></linearGradient>
@@ -18,7 +18,7 @@ export function MotionAttitude({ output, calibrated }: Props) {
         </defs>
         <circle cx="180" cy="172" r="151" fill="#0e1c29" stroke="#2b475e" strokeWidth="2"/>
         <g clipPath={`url(#${prefix}-circle)`}>
-          <g transform={`translate(180 172) rotate(${-Math.max(-90, Math.min(90, roll))}) translate(0 ${boundedPitch * 3.4})`}>
+          <g transform={`translate(180 172) rotate(${Math.max(-90, Math.min(90, roll))}) translate(0 ${boundedPitch * 3.4})`}>
             <rect x="-500" y="-700" width="1000" height="700" fill={`url(#${prefix}-sky)`}/>
             <rect x="-500" y="0" width="1000" height="700" fill={`url(#${prefix}-earth)`}/>
             <path d="M-500 0 H500" stroke="#f7fbff" strokeWidth="2.6"/>

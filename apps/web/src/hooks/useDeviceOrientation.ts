@@ -4,6 +4,7 @@ import { fromDeviceOrientation, type Quaternion } from '../motion/quaternion';
 export interface MotionSample {
   quaternion: Quaternion;
   timestamp: number;
+  screenAngle: number;
 }
 
 interface PermissionDeviceOrientationEvent {
@@ -39,6 +40,7 @@ export function useDeviceOrientation(onSample: (sample: MotionSample) => void) {
         }
       }
       setError(null);
+      setAvailable(false);
       setEnabled(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to start motion sensors.');
@@ -47,14 +49,29 @@ export function useDeviceOrientation(onSample: (sample: MotionSample) => void) {
 
   useEffect(() => {
     if (!enabled) return;
+    const noSamplesTimer = window.setTimeout(() => {
+      if (!lastSample.current) {
+        setError('No motion samples received. Check Safari motion access and reload this HTTPS page.');
+      }
+    }, 3000);
+    let sampleReceived = false;
     let lastUiUpdate = 0;
     let sampleWindowAt = performance.now();
     let sampleCount = 0;
     function handle(event: DeviceOrientationEvent) {
-      if (event.alpha === null || event.beta === null || event.gamma === null) return;
-      const sample = {
+      if (event.alpha === null || event.beta === null || event.gamma === null ||
+          !Number.isFinite(event.alpha) || !Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+      // Safari exposes window.orientation on some iPhones even when ScreenOrientation is absent.
+      const legacyAngle = (window as Window & { orientation?: number }).orientation;
+      const reportedAngle = window.screen.orientation?.angle;
+      // On some Safari builds screen.orientation.angle stays 0 in landscape.
+      const screenAngle = (reportedAngle === 90 || reportedAngle === 270)
+        ? reportedAngle
+        : (legacyAngle === 90 || legacyAngle === -90) ? legacyAngle : 90;
+      const sample: MotionSample = {
         quaternion: fromDeviceOrientation(event.alpha, event.beta, event.gamma),
         timestamp: performance.now(),
+        screenAngle,
       };
       sampleCount++;
       const windowMs = sample.timestamp - sampleWindowAt;
@@ -64,6 +81,11 @@ export function useDeviceOrientation(onSample: (sample: MotionSample) => void) {
         sampleWindowAt = sample.timestamp;
       }
       lastSample.current = sample;
+      if (!sampleReceived) {
+        sampleReceived = true;
+        window.clearTimeout(noSamplesTimer);
+        setError(null);
+      }
       callback.current(sample);
       if (sample.timestamp - lastUiUpdate > 100) {
         lastUiUpdate = sample.timestamp;
@@ -72,7 +94,10 @@ export function useDeviceOrientation(onSample: (sample: MotionSample) => void) {
       }
     }
     window.addEventListener('deviceorientation', handle);
-    return () => window.removeEventListener('deviceorientation', handle);
+    return () => {
+      window.clearTimeout(noSamplesTimer);
+      window.removeEventListener('deviceorientation', handle);
+    };
   }, [enabled]);
 
   const stop = useCallback(() => {

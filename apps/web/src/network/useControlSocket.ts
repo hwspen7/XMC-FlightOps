@@ -6,6 +6,7 @@ import { EMPTY_FLIGHT_TELEMETRY } from '../telemetry/format';
 const DEFAULT_SERVER_STATUS: ServerStatus = {
   armed: false,
   ownedByYou: false,
+  controlPhase: 'idle',
   simulator: { reachable: false, outputEnabled: false, host: 'Not configured', port: 49000, telemetry: EMPTY_FLIGHT_TELEMETRY, telemetryFresh: false, lastHeartbeatAgeMs: null, receivedFields: 0, subscribedFields: 27 },
   control: { framesAccepted: 0, lastFrameAgeMs: null, timeoutMs: 350, inputRoll: null, inputPitch: null, tiltRollDegrees: null, tiltPitchDegrees: null, sensorRateHz: null, inputRateHz: 0, lastAction: null, lastActionAt: null, throttleCommand: null },
 };
@@ -62,6 +63,8 @@ export function useControlSocket() {
 
   const send = useCallback((event: string, data: unknown = {}) => {
     if (socket.current?.readyState !== WebSocket.OPEN) return false;
+    // Do not accumulate obsolete flight commands in the browser's send queue.
+    if (event === 'control' && socket.current.bufferedAmount > 4096) return false;
     socket.current.send(JSON.stringify({ event, data } satisfies SocketMessage));
     return true;
   }, []);

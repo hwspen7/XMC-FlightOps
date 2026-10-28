@@ -5,3 +5,146 @@
 @media (max-width:690px) and (orientation:portrait){.mobile-cockpit{max-height:100dvh;overflow:hidden}.mobile-cockpit>.mobile-profilebar,.mobile-cockpit>.mobile-main,.mobile-cockpit>.mobile-footer,.mobile-cockpit>.mobile-guidance{filter:blur(6px);pointer-events:none}.mobile-orientation-notice{position:fixed;z-index:40;inset:0;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;background:#071724eF;color:#e4f2fc;font-size:16px;text-align:center;padding:24px}}
 @media (max-height:480px) and (orientation:landscape){.mobile-cockpit{padding:7px 14px 10px;gap:7px}.mobile-topbar{min-height:36px}.mobile-outline,.mobile-mode-pill,.mobile-icon{height:33px}.mobile-profilebar{min-height:25px}.mobile-profilebar>button{padding:6px}.mobile-main{min-height:205px;grid-template-columns:minmax(75px,.55fr) minmax(250px,1.55fr) minmax(250px,1.6fr);gap:9px}.mobile-throttle{min-height:210px;padding:10px}.throttle-value{font-size:27px}.throttle-vertical{width:25px}.throttle-range-wrap{min-height:70px}.motion-attitude svg{max-height:210px}.motion-caption{font-size:8px}.mobile-axes{margin-top:2px;gap:8px}.mobile-readouts{padding-top:7px;margin-top:7px}.mobile-right{grid-column:auto}.secondary-heading{font-size:8px}.flight-control-grid{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,minmax(45px,1fr));gap:7px}.flight-action{gap:3px;border-radius:11px;padding:4px}.flight-action svg{height:15px}.flight-action strong{font-size:14px}.flight-action small{font-size:8px}.mobile-footer{flex-direction:row;padding-top:7px}.mobile-primary-actions button{height:34px;padding:0 8px;font-size:10px}.mobile-device-state{gap:9px;font-size:9px}.mobile-alert,.mobile-guidance{font-size:10px;padding:5px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* Fixed mobile flight deck: never scroll or bounce the entire cockpit. */
+html.mobile-flight-locked,
+html.mobile-flight-locked body,
+html.mobile-flight-locked #root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html.mobile-flight-locked .mobile-cockpit {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  min-width: 0;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 7px;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.mobile-cockpit .mobile-topbar {
+  min-height: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.mobile-cockpit .mobile-status { min-width: 0; overflow: hidden; letter-spacing: .7px; gap: 7px; }
+.mobile-cockpit .mobile-status span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mobile-cockpit .mobile-top-actions { flex: 0 0 auto; gap: 6px; }
+.mobile-cockpit .mobile-main {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  grid-template-columns: minmax(68px, .55fr) minmax(0, 1.7fr) minmax(0, 1.7fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 9px;
+}
+.mobile-cockpit .mobile-throttle,
+.mobile-cockpit .mobile-center,
+.mobile-cockpit .mobile-right { grid-column: auto; grid-row: auto; min-height: 0; height: 100%; overflow: hidden; }
+.mobile-cockpit .mobile-throttle { padding: 8px; border-radius: 12px; }
+.mobile-cockpit .throttle-title { font-size: 11px; }
+.mobile-cockpit .throttle-range-wrap { min-height: 0; }
+.mobile-cockpit .throttle-value { font-size: clamp(22px, 4vh, 35px); }
+.mobile-cockpit .throttle-value small { font-size: 14px; }
+.mobile-cockpit .throttle-caption { font-size: 8px; margin-top: 2px; }
+.mobile-cockpit .throttle-vertical { touch-action: none; }
+.mobile-cockpit .mobile-center {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  align-items: center;
+  justify-items: stretch;
+  padding: 0 2px;
+}
+.mobile-cockpit .motion-attitude { min-height: 0; height: 100%; width: 100%; max-width: none; justify-content: center; }
+.mobile-cockpit .motion-attitude svg { height: 100%; min-height: 0; width: auto; max-height: 100%; max-width: 100%; }
+.mobile-cockpit .motion-caption { font-size: 8px; line-height: 1; margin-top: -5px; }
+.mobile-cockpit .mobile-axes { margin-top: 4px; gap: 10px; }
+.mobile-cockpit .mobile-axes>div { row-gap: 3px; }
+.mobile-cockpit .mobile-readouts { padding-top: 4px; margin-top: 5px; gap: 5px; }
+.mobile-cockpit .mobile-right { gap: 5px; }
+.mobile-cockpit .secondary-heading { font-size: 8px; line-height: 1.1; }
+.mobile-cockpit .flight-control-grid {
+  min-height: 0;
+  height: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.mobile-cockpit .flight-action { min-height: 0; border-radius: 10px; padding: 2px; gap: 3px; }
+.mobile-cockpit .flight-action svg { height: 15px; width: 15px; flex-shrink: 0; }
+.mobile-cockpit .flight-action strong { font-size: clamp(11px, 1.6vw, 15px); }
+.mobile-cockpit .flight-action small { font-size: 8px; }
+.mobile-cockpit .action-disabled-note { display: none; }
+.mobile-cockpit .mobile-footer { min-width: 0; min-height: 0; padding-top: 5px; flex-direction: row; gap: 6px; }
+.mobile-cockpit .mobile-device-state { flex-wrap: nowrap; font-size: 9px; gap: 9px; }
+.mobile-cockpit .mobile-primary-actions { gap: 6px; }
+.mobile-cockpit .mobile-primary-actions button { height: 34px; padding: 0 9px; font-size: 10px; }
+.mobile-cockpit .mobile-alert {
+  position: absolute;
+  z-index: 30;
+  top: 46px;
+  right: max(12px, env(safe-area-inset-right));
+  max-width: min(440px, 85vw);
+  box-shadow: 0 12px 22px #000a;
+}
+.mobile-cockpit .mobile-settings-panel {
+  height: 100%;
+  width: min(390px, 100%);
+  padding: max(18px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 20px;
+  gap: 14px;
+}
+.mobile-cockpit .mobile-settings-header h2 { font-size: 21px; }
+.mobile-cockpit .pairing-close { border-radius: 8px; color: #fff; height: 36px; font-weight: 800; }
+
+@media (max-height: 500px) and (orientation: landscape) {
+  html.mobile-flight-locked .mobile-cockpit { gap: 4px; padding-top: max(5px, env(safe-area-inset-top)); padding-bottom: max(5px, env(safe-area-inset-bottom)); }
+  .mobile-cockpit .mobile-outline, .mobile-cockpit .mobile-icon { height: 30px; }
+  .mobile-cockpit .mobile-outline { font-size: 10px; padding: 0 8px; }
+  .mobile-cockpit .mobile-icon { width: 32px; }
+  .mobile-cockpit .mobile-status { font-size: 10px; }
+  .mobile-cockpit .mobile-main { grid-template-columns: minmax(65px, .5fr) minmax(0, 1.75fr) minmax(0, 1.65fr); gap: 7px; }
+  .mobile-cockpit .throttle-value { font-size: 25px; }
+  .mobile-cockpit .mobile-footer { padding-top: 3px; }
+  .mobile-cockpit .mobile-primary-actions button { height: 30px; }
+  .mobile-cockpit .mobile-readouts span { font-size: 8px; }
+  .mobile-cockpit .mobile-readouts strong { font-size: 13px; }
+}
+
+@media (max-width: 680px) and (orientation: landscape) {
+  .mobile-cockpit .mobile-device-state { gap: 6px; font-size: 8px; }
+  .mobile-cockpit .mobile-device-state svg { display: none; }
+  .mobile-cockpit .mobile-primary-actions button { padding: 0 6px; font-size: 9px; }
+  .mobile-cockpit .mobile-right .secondary-heading { display: none; }
+  .mobile-cockpit .mobile-center .motion-caption { display: none; }
+}
+
+@media (max-width: 950px) and (orientation: portrait) {
+  html.mobile-flight-locked .mobile-cockpit>.mobile-main,
+  html.mobile-flight-locked .mobile-cockpit>.mobile-footer {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  html.mobile-flight-locked .mobile-orientation-notice {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #071724f5;
+    color: #e4f2fc;
+    text-align: center;
+    padding: 24px;
+  }
+}

@@ -13,6 +13,8 @@ public:
     void tick();
     void release();
     bool armed() const { return armed_; }
+    // A stable, non-secret diagnostic code from the last ARM attempt.
+    std::string_view arm_error() const { return arm_error_; }
 private:
     XPLMDataRef roll_override_ = nullptr;
     XPLMDataRef pitch_override_ = nullptr;
@@ -21,6 +23,7 @@ private:
     XPLMDataRef throttle_ = nullptr;
     bool armed_ = false;
     bool owned_override_ = false;
+    std::string_view arm_error_ = "none";
     bool has_sequence_ = false;
     std::uint64_t last_sequence_ = 0;
     std::chrono::steady_clock::time_point last_control_{};

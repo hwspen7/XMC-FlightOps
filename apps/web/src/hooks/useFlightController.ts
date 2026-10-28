@@ -1,32 +1,59 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AuxiliaryAction } from '@xplane/shared';
-import { DEFAULT_YOKE_SETTINGS, YokeController, ZERO_OUTPUT, type YokeOutput, type YokeSettings } from '../controllers/yoke';
+import { YokeController, ZERO_OUTPUT, type YokeOutput } from '../controllers/yoke';
 import { useDeviceOrientation, type MotionSample } from './useDeviceOrientation';
 import { useControlSocket } from '../network/useControlSocket';
 
 export function useFlightController() {
   const processor = useRef(new YokeController());
-  const latestControl = useRef<YokeOutput>(ZERO_OUTPUT);
   const lastViewAt = useRef(0);
+  const lastTransmitAt = useRef(0);
   const sequence = useRef(0);
+  const transmitting = useRef(false);
+  const sensorRate = useRef(0);
   const [output, setOutput] = useState<YokeOutput>(ZERO_OUTPUT);
   const [calibrated, setCalibrated] = useState(false);
-  const [settings, setSettings] = useState<YokeSettings>(DEFAULT_YOKE_SETTINGS);
   const [pairingCode, setPairingCode] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const socket = useControlSocket();
 
+  // Keep sensor-to-network forwarding out of React's rendering and 33 ms timers.
+  // One event generates at most one new command. WebSocket never queues stale
+  // control frames under network congestion.
   const onSample = useCallback((sample: MotionSample) => {
-    const next = processor.current.update(sample.quaternion, sample.timestamp);
-    latestControl.current = next;
-    if (sample.timestamp - lastViewAt.current > 35) {
+    if (processor.current.isCalibrated() && !processor.current.matchesOrientation(sample.screenAngle)) {
+      // A flipped screen changes the physical pitch axis. Release authority.
+      transmitting.current = false;
+      socket.send('disarm');
+      processor.current.reset();
+      setCalibrated(false);
+      setOutput(ZERO_OUTPUT);
+      setLocalError('Phone orientation changed. Recenter before arming again.');
+      return;
+    }
+    const next = processor.current.update(sample.quaternion, sample.screenAngle);
+    if (sample.timestamp - lastViewAt.current >= 35) {
       lastViewAt.current = sample.timestamp;
       setOutput(next);
     }
-  }, []);
-  const motion = useDeviceOrientation(onSample);
+    if (!transmitting.current || !processor.current.isCalibrated()) return;
+    if (sample.timestamp - lastTransmitAt.current < 12) return; // 60 Hz typical, 83 Hz maximum
+    if (socket.send('control', {
+      sequence: sequence.current,
+      roll: next.roll,
+      pitch: next.pitch,
+      sensorRateHz: sensorRate.current,
+      tiltRollDegrees: next.rawRollDegrees,
+      tiltPitchDegrees: next.rawPitchDegrees,
+    })) {
+      lastTransmitAt.current = sample.timestamp;
+      sequence.current++;
+    }
+  }, [socket.send]);
 
-  useEffect(() => processor.current.configure(settings), [settings]);
+  const motion = useDeviceOrientation(onSample);
+  sensorRate.current = motion.sampleRateHz;
+  transmitting.current = socket.connected && socket.serverStatus.ownedByYou && motion.enabled && calibrated;
 
   const recenter = useCallback(() => {
     const sample = motion.lastSample.current;
@@ -34,8 +61,8 @@ export function useFlightController() {
       setLocalError('No recent motion sample. Enable sensors and move the device.');
       return;
     }
-    processor.current.calibrate(sample.quaternion);
-    latestControl.current = ZERO_OUTPUT;
+    processor.current.calibrate(sample.quaternion, sample.screenAngle);
+    lastTransmitAt.current = 0;
     setOutput(ZERO_OUTPUT);
     setCalibrated(true);
     setLocalError(null);
@@ -52,39 +79,42 @@ export function useFlightController() {
     }
     setLocalError(null);
     sequence.current = 0;
+    lastTransmitAt.current = 0;
     socket.send('arm', { pairingCode: pairingCode.trim() });
   }, [calibrated, motion.enabled, motion.lastSample, pairingCode, socket.connected, socket.send]);
 
   const disarm = useCallback(() => {
+    transmitting.current = false;
     socket.send('disarm');
     setLocalError(null);
+  }, [socket.send]);
+
+  useEffect(() => {
+    const disarmWhenHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        transmitting.current = false;
+        socket.send('disarm');
+      }
+    };
+    const onPageHide = () => {
+      transmitting.current = false;
+      socket.send('disarm');
+    };
+    document.addEventListener('visibilitychange', disarmWhenHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', disarmWhenHidden);
+      window.removeEventListener('pagehide', onPageHide);
+    };
   }, [socket.send]);
 
   const stopSensors = useCallback(() => {
     disarm();
     motion.stop();
     processor.current.reset();
-    latestControl.current = ZERO_OUTPUT;
     setOutput(ZERO_OUTPUT);
     setCalibrated(false);
   }, [disarm, motion.stop]);
-
-  useEffect(() => {
-    if (!socket.connected || !socket.serverStatus.ownedByYou || !motion.enabled) return;
-    const clock = window.setInterval(() => {
-      const sample = motion.lastSample.current;
-      if (!sample || performance.now() - sample.timestamp > 250) return;
-      socket.send('control', {
-        sequence: sequence.current++,
-        roll: latestControl.current.roll,
-        pitch: latestControl.current.pitch,
-        sensorRateHz: motion.sampleRateHz,
-        tiltRollDegrees: latestControl.current.rawRollDegrees,
-        tiltPitchDegrees: latestControl.current.rawPitchDegrees,
-      });
-    }, 33);
-    return () => clearInterval(clock);
-  }, [motion.enabled, motion.lastSample, motion.sampleRateHz, socket.connected, socket.send, socket.serverStatus.ownedByYou]);
 
   const sendAuxiliary = useCallback((action: AuxiliaryAction) => {
     if (socket.serverStatus.ownedByYou && socket.serverStatus.simulator.outputEnabled) socket.send('auxiliary', action);
@@ -95,7 +125,7 @@ export function useFlightController() {
   }, [socket.send, socket.serverStatus.ownedByYou, socket.serverStatus.simulator.outputEnabled]);
 
   return {
-    sendAuxiliary, sendThrottle, output, calibrated, settings, setSettings,
+    sendAuxiliary, sendThrottle, output, calibrated,
     pairingCode, setPairingCode, localError,
     motion, socket, arm, disarm, recenter, stopSensors,
   };

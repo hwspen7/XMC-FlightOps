@@ -19,6 +19,8 @@ export function validateFrame(value: unknown): value is ControlFrame {
 @Injectable()
 export class ControlService {
   private owner: object | null = null;
+  private armIssuedAt = 0;
+  private nativeConfirmed = false;
   private lastFrameAt = 0;
   private lastAcceptedAt = 0;
   private sequence = -1;
@@ -53,11 +55,14 @@ export class ControlService {
   }
 
   isArmed(): boolean { return this.owner !== null; }
+  currentOwner(): object | null { return this.owner; }
   isOwner(client: object): boolean { return this.owner === client; }
 
   arm(client: object): boolean {
-    if (this.owner && this.owner !== client) return false;
+    if (this.owner) return this.owner === client;
     this.owner = client;
+    this.armIssuedAt = Date.now();
+    this.nativeConfirmed = false;
     this.sequence = -1;
     this.lastAcceptedAt = 0;
     this.lastInput = null;
@@ -111,6 +116,8 @@ export class ControlService {
   disarm(client?: object): boolean {
     if (!this.owner || (client && this.owner !== client)) return false;
     this.owner = null;
+    this.armIssuedAt = 0;
+    this.nativeConfirmed = false;
     this.sequence = -1;
     this.lastFrameAt = 0;
     this.lastAcceptedAt = 0;
@@ -119,6 +126,29 @@ export class ControlService {
     this.throttleCommand = null;
     this.simulator.deactivate();
     return true;
+  }
+
+  /**
+   * WebSocket pairing is not proof that the native plugin owns the flight axes.
+   * Fail closed if ARM is not acknowledged or if an acknowledged override is lost.
+   */
+  checkNativeAuthority(now = Date.now()): 'unconfirmed' | 'lost' | null {
+    if (!this.owner) return null;
+    const state = this.simulator.status();
+    if (!state.outputEnabled || state.transport !== 'native') return null;
+    if (state.reachable && state.nativeArmed === true) {
+      this.nativeConfirmed = true;
+      return null;
+    }
+    if (this.nativeConfirmed) {
+      this.disarm();
+      return 'lost';
+    }
+    if (now - this.armIssuedAt >= 900) {
+      this.disarm();
+      return 'unconfirmed';
+    }
+    return null;
   }
 
   checkTimeout(now = Date.now()): boolean {

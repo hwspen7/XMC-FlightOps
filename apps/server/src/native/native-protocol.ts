@@ -1,4 +1,4 @@
-import type { FlightTelemetry } from '@xplane/shared';
+import type { FlightTelemetry, NativeArmError } from '@xplane/shared';
 
 export const NATIVE_FIELDS = [
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
@@ -11,12 +11,21 @@ export const NATIVE_FIELDS = [
 ] as const satisfies readonly (keyof FlightTelemetry)[];
 
 const KEYS = new Set<string>(NATIVE_FIELDS);
+const ARM_ERRORS = new Set<NativeArmError>([
+  'none',
+  'missing-roll-override', 'missing-pitch-override',
+  'missing-roll-input', 'missing-pitch-input',
+  'readonly-roll-override', 'readonly-pitch-override',
+  'readonly-roll-input', 'readonly-pitch-input',
+  'roll-override-busy', 'pitch-override-busy',
+]);
 const AUXILIARY_ACTIONS = new Set([
   'trim-up', 'trim-down', 'flaps-up', 'flaps-down', 'gear-toggle', 'spoilers-toggle',
 ]);
 
 export interface NativeSample {
   armed: boolean;
+  armError: NativeArmError | null;
   values: Partial<Record<(typeof NATIVE_FIELDS)[number], number>>;
 }
 
@@ -25,17 +34,24 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
   const fields = packet.toString('utf8').split('|');
   if (fields[0] !== 'XMT1' || fields[1] !== token || !/^armed=[01]$/.test(fields[2] ?? '')) return null;
   const values: NativeSample['values'] = {};
+  let armError: NativeArmError | null = null;
   for (const field of fields.slice(3)) {
     const index = field.indexOf('=');
     if (index <= 0) return null;
     const key = field.slice(0, index);
     const value = field.slice(index + 1);
+    if (key === 'armError') {
+      if (armError !== null || !ARM_ERRORS.has(value as NativeArmError)) return null;
+      armError = value as NativeArmError;
+      continue;
+    }
     if (!KEYS.has(key) || value.length > 32 || value.trim() === '') return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
     values[key as keyof typeof values] = parsed;
   }
-  return { armed: fields[2] === 'armed=1', values };
+  if (fields[2] === 'armed=1' && armError !== null && armError !== 'none') return null;
+  return { armed: fields[2] === 'armed=1', armError, values };
 }
 
 export function encodeNativeControl(token: string, sequence: number, roll: number, pitch: number): Buffer {

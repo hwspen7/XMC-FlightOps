@@ -26,4 +26,39 @@ describe('Control safety and ownership', () => {
     expect(control.isArmed()).toBe(false);
     expect(control.metrics().lastFrameAgeMs).toBeNull();
   });
+  it('does not confuse pairing with native plugin acknowledgement', () => {
+    const status = { outputEnabled: true, transport: 'native', reachable: true, nativeArmed: false };
+    const sim = {
+      activate: vi.fn(), update: vi.fn(), deactivate: vi.fn(), status: vi.fn(() => status),
+    } as unknown as XPlaneService;
+    const control = new ControlService(sim);
+    const owner = {};
+    expect(control.arm(owner)).toBe(true);
+    expect(control.checkNativeAuthority(Date.now() + 300)).toBeNull();
+    expect(control.checkNativeAuthority(Date.now() + 1000)).toBe('unconfirmed');
+    expect(control.isArmed()).toBe(false);
+    expect(sim.deactivate).toHaveBeenCalledOnce();
+  });
+  it('releases control if confirmed native authority subsequently disappears', () => {
+    const status = { outputEnabled: true, transport: 'native', reachable: true, nativeArmed: true };
+    const sim = {
+      activate: vi.fn(), update: vi.fn(), deactivate: vi.fn(), status: vi.fn(() => status),
+    } as unknown as XPlaneService;
+    const control = new ControlService(sim);
+    const owner = {};
+    expect(control.arm(owner)).toBe(true);
+    expect(control.checkNativeAuthority()).toBeNull();
+    status.nativeArmed = false;
+    expect(control.checkNativeAuthority()).toBe('lost');
+    expect(control.isArmed()).toBe(false);
+  });
+  it('retains ownership in monitor-only preview without simulator override', () => {
+    const sim = {
+      activate: vi.fn(), deactivate: vi.fn(), status: vi.fn(() => ({ outputEnabled: false, transport: 'native', reachable: true, nativeArmed: false })),
+    } as unknown as XPlaneService;
+    const control = new ControlService(sim);
+    expect(control.arm({})).toBe(true);
+    expect(control.checkNativeAuthority(Date.now() + 2000)).toBeNull();
+    expect(control.isArmed()).toBe(true);
+  });
 });

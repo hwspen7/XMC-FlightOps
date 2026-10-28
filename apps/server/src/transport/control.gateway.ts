@@ -1,10 +1,11 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
-import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import type { ArmRequest, ServerNotice, ServerStatus, SocketMessage } from '@xplane/shared';
 import { Server, WebSocket } from 'ws';
 import { ControlService } from '../control/control.service';
 import { settings } from '../configuration/settings';
 import { XPlaneService } from '../xplane/xplane.service';
+import { controlPhase } from './control-phase';
 
 @WebSocketGateway({ path: '/control' })
 export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
@@ -29,7 +30,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   @SubscribeMessage('arm')
-  onArm(client: WebSocket, @MessageBody() data: ArmRequest): void {
+  onArm(@ConnectedSocket() client: WebSocket, @MessageBody() data: ArmRequest): void {
     const now = Date.now();
     const previous = this.attempts.get(client);
     const attempts = previous && now - previous.windowStart < 60_000
@@ -57,22 +58,22 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   @SubscribeMessage('control')
-  onFrame(client: WebSocket, @MessageBody() data: unknown): void {
+  onFrame(@ConnectedSocket() client: WebSocket, @MessageBody() data: unknown): void {
     this.control.accept(client, data);
   }
 
   @SubscribeMessage('throttle')
-  onThrottle(client: WebSocket, @MessageBody() value: unknown): void {
+  onThrottle(@ConnectedSocket() client: WebSocket, @MessageBody() value: unknown): void {
     if (!this.control.throttle(client, value)) this.notice(client, 'Throttle command not accepted. Check arm and simulator output.', 'error');
   }
 
   @SubscribeMessage('auxiliary')
-  onAuxiliary(client: WebSocket, @MessageBody() action: unknown): void {
+  onAuxiliary(@ConnectedSocket() client: WebSocket, @MessageBody() action: unknown): void {
     if (!this.control.auxiliary(client, action)) this.notice(client, 'Flight control command not accepted.', 'error');
   }
 
   @SubscribeMessage('disarm')
-  onDisarm(client: WebSocket): void {
+  onDisarm(@ConnectedSocket() client: WebSocket): void {
     if (this.control.disarm(client)) {
       this.logger.log('Controller disarmed');
       this.broadcastStatus();
@@ -84,6 +85,22 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
       this.logger.warn('Controller timed out; simulator override released');
       this.broadcastStatus();
     }
+    const owner = this.control.currentOwner();
+    const authorityFailure = this.control.checkNativeAuthority();
+    if (authorityFailure) {
+      const nativeError = this.simulator.status().nativeArmError;
+      const reason = nativeError && nativeError !== 'none' ? nativeError : null;
+      this.logger.warn(authorityFailure === 'lost'
+        ? 'Native control authority was lost; controller disarmed'
+        : `Native plugin did not confirm ARM; controller disarmed${reason ? ` (${reason})` : ' (no C++ rejection reason reported)'}`);
+      if (owner instanceof WebSocket) {
+        const detail = reason ? ` C++ reason: ${reason}.` : ' Check X-Plane Log.txt for native ARM diagnostics.';
+        this.notice(owner, authorityFailure === 'lost'
+          ? 'X-Plane released control authority. Recenter and arm again.'
+          : `X-Plane did not accept control.${detail}`, 'error');
+      }
+      this.broadcastStatus();
+    }
     if (Date.now() - this.lastStatusAt > (this.simulator.status().reachable ? 150 : 1000)) {
       this.lastStatusAt = Date.now();
       this.broadcastStatus();
@@ -91,10 +108,12 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   private sendStatus(client: WebSocket): void {
+    const simulator = this.simulator.status();
     this.send(client, 'status', {
       armed: this.control.isArmed(),
       ownedByYou: this.control.isOwner(client),
-      simulator: this.simulator.status(),
+      simulator,
+      controlPhase: controlPhase(this.control.isArmed(), simulator),
       control: this.control.metrics(),
     } satisfies ServerStatus);
   }

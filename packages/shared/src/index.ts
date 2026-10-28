@@ -42,9 +42,19 @@ export interface FlightTelemetry {
   receivedAt: number | null;
 }
 
+// Reported by the C++ plugin. "none" means no ARM rejection was recorded.
+export type NativeArmError =
+  | 'none'
+  | 'missing-roll-override' | 'missing-pitch-override'
+  | 'missing-roll-input' | 'missing-pitch-input'
+  | 'readonly-roll-override' | 'readonly-pitch-override'
+  | 'readonly-roll-input' | 'readonly-pitch-input'
+  | 'roll-override-busy' | 'pitch-override-busy';
+
 export interface SimulatorStatus {
   transport?: 'udp' | 'native';
   nativeArmed?: boolean | null;
+  nativeArmError?: NativeArmError | null;
   reachable: boolean;
   outputEnabled: boolean;
   host: string;
@@ -71,7 +81,10 @@ export interface ControlMonitor {
   throttleCommand: number | null;
 }
 
+export type ControlPhase = 'idle' | 'preview' | 'pending' | 'active' | 'unverified';
+
 export interface ServerStatus {
+  controlPhase: ControlPhase;
   armed: boolean;
   ownedByYou: boolean;
   simulator: SimulatorStatus;

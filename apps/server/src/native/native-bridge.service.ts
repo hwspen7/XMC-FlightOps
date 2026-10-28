@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createSocket, type Socket } from 'node:dgram';
-import type { AuxiliaryAction, FlightTelemetry, SimulatorStatus } from '@xplane/shared';
+import type { AuxiliaryAction, FlightTelemetry, NativeArmError, SimulatorStatus } from '@xplane/shared';
 import { settings } from '../configuration/settings';
 import { emptyTelemetry } from '../xplane/telemetry';
 import {
@@ -17,6 +17,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
   private lastReport: FlightTelemetry = emptyTelemetry();
   private latestFields = 0;
   private armedReported = false;
+  private armErrorReported: NativeArmError | null = null;
   private sequence = 0;
 
   onModuleInit(): void {
@@ -33,6 +34,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       const now = Date.now();
       this.lastTelemetryAt = now;
       this.armedReported = decoded.armed;
+      this.armErrorReported = decoded.armError;
       this.latestFields = Object.keys(decoded.values).length;
       // Every native sample is a complete snapshot. Unsupported datarefs remain null.
       this.lastReport = { ...emptyTelemetry(), ...decoded.values, receivedAt: now };
@@ -50,6 +52,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       reachable,
       transport: 'native',
       nativeArmed: reachable ? this.armedReported : null,
+      nativeArmError: reachable ? this.armErrorReported : null,
       outputEnabled: settings.outputEnabled,
       host: settings.xplaneHost,
       port: settings.nativePluginPort,

@@ -27,14 +27,30 @@ bool ControlSurface::action(std::string_view name) {
 bool ControlSurface::apply(const Command& cmd) {
     if (cmd.operation == Operation::Disarm) { release(); return true; }
     if (cmd.operation == Operation::Arm) {
-        if (armed_ || !roll_override_ || !pitch_override_ || !roll_ || !pitch_ ||
-            !XPLMCanWriteDataRef(roll_override_) || !XPLMCanWriteDataRef(pitch_override_) ||
-            !XPLMCanWriteDataRef(roll_) || !XPLMCanWriteDataRef(pitch_) ||
-            XPLMGetDatai(roll_override_) != 0 || XPLMGetDatai(pitch_override_) != 0) return false;
+        // Fail closed. Never steal an override already held by another plugin.
+        // Report the precise reason without emitting the shared token.
+        const auto reject = [this](std::string_view reason) {
+            arm_error_ = reason;
+            return false;
+        };
+        // UDP ARM retries are idempotent for the authenticated local peer.
+        // Do not reset the control watchdog on a duplicate ARM packet.
+        if (armed_) { arm_error_ = "none"; return true; }
+        if (!roll_override_) return reject("missing-roll-override");
+        if (!pitch_override_) return reject("missing-pitch-override");
+        if (!roll_) return reject("missing-roll-input");
+        if (!pitch_) return reject("missing-pitch-input");
+        if (!XPLMCanWriteDataRef(roll_override_)) return reject("readonly-roll-override");
+        if (!XPLMCanWriteDataRef(pitch_override_)) return reject("readonly-pitch-override");
+        if (!XPLMCanWriteDataRef(roll_)) return reject("readonly-roll-input");
+        if (!XPLMCanWriteDataRef(pitch_)) return reject("readonly-pitch-input");
+        if (XPLMGetDatai(roll_override_) != 0) return reject("roll-override-busy");
+        if (XPLMGetDatai(pitch_override_) != 0) return reject("pitch-override-busy");
         XPLMSetDatai(roll_override_, 1);
         XPLMSetDatai(pitch_override_, 1);
         owned_override_ = true;
         armed_ = true;
+        arm_error_ = "none";
         has_sequence_ = false;
         XPLMSetDataf(roll_, 0.0f);
         XPLMSetDataf(pitch_, 0.0f);
