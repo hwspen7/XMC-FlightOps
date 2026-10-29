@@ -16,17 +16,18 @@ export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[Na
 
 export const NATIVE_FIELDS = [
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
+  'speedVsoKnots', 'speedVsKnots', 'speedVfeKnots', 'speedVnoKnots', 'speedVneKnots', 'selectedAltitudeFeet',
   'groundSpeedKnots', 'altitudeFeet', 'verticalSpeedFpm', 'magneticHeadingDegrees',
   'trueAirspeedKnots', 'aglFeet', 'angleOfAttackDegrees', 'sideslipDegrees',
   'rollRateDegreesPerSecond', 'pitchRateDegreesPerSecond', 'yawRateDegreesPerSecond',
   'latitudeDegrees', 'longitudeDegrees', 'flightPathDegrees', 'machNumber',
   'throttleRatio', 'flapRatio', 'flapHandleRatio', 'flapDeployRatio', 'flapDetentCount', 'aircraftIcao', 'speedbrakeRatio', 'elevatorTrimRatio',
-  'gearHandleDown', 'autopilotServosOn', 'n1LeftPercent', 'n1RightPercent',
+  'gearHandleDown', 'gearDeploy0Ratio', 'gearDeploy1Ratio', 'gearDeploy2Ratio', 'autopilotServosOn', 'n1LeftPercent', 'n1RightPercent',
   'simJoystickRollRatio', 'simJoystickPitchRatio', 'cockpitYokeRollRatio', 'cockpitYokePitchRatio',
   'effectiveRollRatio', 'effectivePitchRatio', 'rollOverrideState', 'pitchOverrideState',
   'nativeCommandRollRatio', 'nativeCommandPitchRatio',
   'rudderRatio', 'rudderOverrideState', 'leftBrakeRatio', 'rightBrakeRatio', 'wheelBrakeRatio',
-  'reverseHandleRatio', 'reverseActive', 'onGround', 'autothrottleOn', 'mouseYokeActive', 'mouseYokeHideAvailable',
+  'reverseHandleRatio', 'reverseActive', 'gearDeploy0Ratio', 'gearDeploy1Ratio', 'gearDeploy2Ratio', 'onGround', 'autothrottleOn', 'mouseYokeActive', 'mouseYokeHideAvailable',
 ] as const satisfies readonly (keyof FlightTelemetry)[];
 
 const KEYS = new Set<string>(NATIVE_FIELDS);
@@ -36,7 +37,7 @@ const NORMALIZED_CONTROL_FIELDS = new Set<string>([
   'effectiveRollRatio', 'effectivePitchRatio',
   'nativeCommandRollRatio', 'nativeCommandPitchRatio',
   'rudderRatio', 'rudderOverrideState', 'leftBrakeRatio', 'rightBrakeRatio', 'wheelBrakeRatio',
-  'reverseHandleRatio', 'reverseActive', 'onGround', 'autothrottleOn', 'mouseYokeActive', 'mouseYokeHideAvailable',
+  'reverseHandleRatio', 'reverseActive', 'gearDeploy0Ratio', 'gearDeploy1Ratio', 'gearDeploy2Ratio', 'onGround', 'autothrottleOn', 'mouseYokeActive', 'mouseYokeHideAvailable',
 ]);
 const ARM_ERRORS = new Set<NativeArmError>([
   'none',

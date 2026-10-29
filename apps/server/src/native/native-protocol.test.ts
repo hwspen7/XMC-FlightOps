@@ -21,6 +21,15 @@ describe('native transport protocol', () => {
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|aircraftIcao=B7\|38`), TOKEN)).toBeNull();
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|flapDetentCount=100`), TOKEN)).toBeNull();
   });
+  it('validates actual landing gear deployment measurements separately from handle commands', () => {
+    const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|gearHandleDown=0|gearDeploy0Ratio=0|gearDeploy1Ratio=0.5|gearDeploy2Ratio=1`);
+    expect(parseNativeTelemetry(packet, TOKEN)?.values).toMatchObject({ gearHandleDown: 0, gearDeploy0Ratio: 0, gearDeploy1Ratio: 0.5, gearDeploy2Ratio: 1 });
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|gearDeploy1Ratio=2`), TOKEN)).toBeNull();
+  });
+  it('accepts aircraft-sourced V-speeds and selected altitude without inventing limits', () => {
+    const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|speedVsoKnots=45|speedVsKnots=52|speedVfeKnots=105|speedVnoKnots=140|speedVneKnots=170|selectedAltitudeFeet=6000`);
+    expect(parseNativeTelemetry(packet, TOKEN)?.values).toMatchObject({ speedVsoKnots:45, speedVsKnots:52, speedVfeKnots:105, speedVnoKnots:140, speedVneKnots:170, selectedAltitudeFeet:6000 });
+  });
   it('decodes authenticated flight data', () => {
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|rollDegrees=12.5|altitudeFeet=4800`), TOKEN))
       .toEqual({ armed: true, armError: null, values: { rollDegrees: 12.5, altitudeFeet: 4800 } });

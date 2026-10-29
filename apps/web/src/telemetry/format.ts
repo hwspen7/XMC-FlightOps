@@ -2,6 +2,7 @@ import type { FlightTelemetry } from '@xplane/shared';
 
 export const EMPTY_FLIGHT_TELEMETRY: FlightTelemetry = {
   rollDegrees: null, pitchDegrees: null, headingDegrees: null, magneticHeadingDegrees: null,
+  speedVsoKnots: null, speedVsKnots: null, speedVfeKnots: null, speedVnoKnots: null, speedVneKnots: null, selectedAltitudeFeet: null,
   indicatedAirspeedKnots: null, trueAirspeedKnots: null, groundSpeedKnots: null,
   altitudeFeet: null, aglFeet: null, verticalSpeedFpm: null,
   angleOfAttackDegrees: null, sideslipDegrees: null, rollRateDegreesPerSecond: null,
@@ -10,7 +11,8 @@ export const EMPTY_FLIGHT_TELEMETRY: FlightTelemetry = {
   machNumber: null, throttleRatio: null, flapRatio: null,
   flapHandleRatio: null, flapDeployRatio: null, flapDetentCount: null, aircraftIcao: null,
   speedbrakeRatio: null,
-  elevatorTrimRatio: null, gearHandleDown: null, autopilotServosOn: null,
+  elevatorTrimRatio: null, gearHandleDown: null,
+  gearDeploy0Ratio: null, gearDeploy1Ratio: null, gearDeploy2Ratio: null, autopilotServosOn: null,
   n1LeftPercent: null, n1RightPercent: null,
   simJoystickRollRatio: null, simJoystickPitchRatio: null,
   cockpitYokeRollRatio: null, cockpitYokePitchRatio: null,

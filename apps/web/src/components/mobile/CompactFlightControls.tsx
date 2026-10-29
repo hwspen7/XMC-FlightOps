@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'rea
 import type { AuxiliaryAction, FlightTelemetry } from '@xplane/shared';
 import { brakeLevelForDisplacement } from './flightDeckGestures';
 import { buildFlapDisplay } from './flapProfiles';
+import { gearReadback } from './gearIndication';
 
 type Pedal = 'rudder' | 'brakes' | 'reverse';
 interface Props {
@@ -26,25 +27,42 @@ function Steering({ active, ground, send }: { active: boolean; ground: boolean; 
     window.addEventListener('blur', blur);
     return () => { document.removeEventListener('visibilitychange', cancel); window.removeEventListener('blur', blur); release(); };
   }, [release]);
+  useEffect(() => { if (!active || !ground) release(); }, [active, ground, release]);
   const set = (value: number) => {
     const v = clamp(value, -100, 100);
     setRudder(v);
-    if (performance.now() - last.current >= 40) { send('rudder', v / 100); last.current = performance.now(); }
+    if (performance.now() - last.current >= 40) {
+      send('rudder', v / 100);
+      last.current = performance.now();
+    }
   };
-  return <section className="fd-rudder fd-tile">
-    <div className="fd-tile-title">RUDDER <span>{rudder > 0 ? 'RIGHT' : rudder < 0 ? 'LEFT' : 'CENTER'}</span></div>
-    <input aria-label="Rudder, spring centered" className="fd-rudder-range" type="range" min="-100" max="100" value={rudder} disabled={!active} onChange={e => set(Number(e.target.value))}
-      onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onTouchEnd={release}/>
-    <div className="fd-rudder-caption"><span>L</span><span>{rudder}%</span><span>R</span></div>
-    <div className="fd-ground-mini">
-      <span>GROUND TURN <small>{ground ? 'AVAILABLE' : 'AIR LOCK'}</small></span>
-      <div className="fd-ground-buttons">
-        <button disabled={!active || !ground} onPointerDown={() => set(-45)} onPointerUp={release} onPointerCancel={release} onPointerLeave={release}>◀</button>
-        <button disabled={!active || !ground} onClick={release}>●</button>
-        <button disabled={!active || !ground} onPointerDown={() => set(45)} onPointerUp={release} onPointerCancel={release} onPointerLeave={release}>▶</button>
+  const beginGround = (e: PointerEvent<HTMLButtonElement>, value: number) => {
+    if (!active || !ground) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setRudder(value);
+    send('rudder', value / 100);
+  };
+  const endGround = () => release();
+  return <>
+    <section className="fd-rudder fd-tile">
+      <div className="fd-tile-title">RUDDER <span>{rudder > 0 ? `R ${rudder}%` : rudder < 0 ? `L ${Math.abs(rudder)}%` : 'CENTERED'}</span></div>
+      <div className="fd-rudder-strip">
+        <span>L</span>
+        <input aria-label="Rudder spring-centered slider" className="fd-rudder-range" type="range" min="-100" max="100" step="1" value={rudder} disabled={!active}
+          onChange={e => set(Number(e.target.value))}
+          onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onTouchEnd={release}/>
+        <span>R</span>
       </div>
-    </div>
-  </section>;
+    </section>
+    <section className="fd-ground fd-tile">
+      <div className="fd-tile-title">GROUND TURN <span>{ground ? 'GROUND ONLY' : 'AIR LOCK'}</span></div>
+      <div className="fd-ground-turn-buttons">
+        <button aria-label="Hold for ground left turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, -45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}>◀ <span>LEFT</span></button>
+        <button aria-label="Hold for ground right turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, 45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}><span>RIGHT</span> ▶</button>
+      </div>
+    </section>
+  </>;
 }
 
 export function TouchBrake({ active, send, ratio }: { active: boolean; send: Props['sendPedal']; ratio: number | null }) {
@@ -96,42 +114,67 @@ export function CompactFlightControls({ telemetry, live, active, sendPedal, send
     telemetry.flapHandleRatio ?? telemetry.flapRatio,
     telemetry.flapDeployRatio,
   ) : null;
-  const flap = flapInfo?.label ?? '---';
   const spoiler = live && telemetry.speedbrakeRatio !== null ? Math.round(telemetry.speedbrakeRatio * 100) : null;
-  const gear = live && telemetry.gearHandleDown !== null ? telemetry.gearHandleDown > .5 ? 'DOWN' : 'UP' : '---';
+  const gear = gearReadback(telemetry.gearHandleDown, [telemetry.gearDeploy0Ratio, telemetry.gearDeploy1Ratio, telemetry.gearDeploy2Ratio], live);
   const brake = live ? telemetry.wheelBrakeRatio : null;
-  const gearAria = `Toggle landing gear (current handle: ${gear})`;
-
+  const trim = live && telemetry.elevatorTrimRatio !== null && Number.isFinite(telemetry.elevatorTrimRatio) ? clamp(telemetry.elevatorTrimRatio, -1, 1) : null;
+  const trimDirection = trim === null ? 'NO DATA' : trim > .005 ? 'NOSE UP' : trim < -.005 ? 'NOSE DOWN' : 'NEUTRAL';
+  const trimValue = trim === null ? '---' : `${Math.abs(trim * 100).toFixed(0)}%`;
+  const flapItems = [...(flapInfo?.labels ?? [])].reverse();
+  const selected = flapInfo?.selectedIndex ?? 0;
+  const position = flapInfo && flapInfo.labels.length > 1 ? 100 * selected / (flapInfo.labels.length - 1) : 0;
   return <div className="fd-extra-controls">
     <Steering active={active} ground={ground} send={sendPedal}/>
-    <div className="fd-compact-row fd-system-row">
-      <section className="fd-flaps fd-tile">
-        <div className="fd-tile-title">FLAPS <span>{flapInfo ? `${flapInfo.model} · ${flapInfo.authoritativeLabels ? 'DETENT' : 'CONFIG'}` : 'NO DATA'}</span></div>
-        <div className="fd-step fd-step-flaps">
-          <button aria-label="Retract flaps one step" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.previous === null)} onClick={() => sendAction('flaps-up')}>−</button>
-          <div className="fd-flap-readout">
-            <strong>{flap}</strong>
-            <small>{flapInfo ? `HANDLE ${flapInfo.handlePercent}% · ACT ${flapInfo.actualPercent ?? '---'}%${flapInfo.moving ? ' · MOVING' : ''}` : 'WAITING FOR DATA'}</small>
-          </div>
-          <button aria-label="Extend flaps one step" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.next === null)} onClick={() => sendAction('flaps-down')}>+</button>
+    <section className="fd-flaps fd-tile">
+      <div className="fd-tile-title">FLAPS <span>{flapInfo?.model ?? 'NO DATA'}</span></div>
+      <div className="fd-flap-current">{flapInfo?.label ?? '---'}</div>
+      <div className="fd-flap-vertical">
+        <div className="fd-flap-rail" aria-label="Aircraft flap detent scale">
+          {flapItems.length ? flapItems.map((label, rev) => {
+            const index = flapItems.length - 1 - rev;
+            return <div className={`fd-flap-detent ${selected === index ? 'is-selected' : ''}`} key={`${index}-${label}`}>
+              <span className="fd-flap-mark"/><span>{label === 'UP' ? '0' : label}</span>
+            </div>;
+          }) : <span className="fd-no-detents">NO DATA</span>}
+          {flapItems.length > 0 && <i className="fd-flap-handle" aria-hidden="true" style={{bottom: `${position}%`}}/>}
         </div>
-        {flapInfo && flapInfo.labels.length > 0 && <div className="fd-flap-ticks" aria-label="Configured flap detents">{flapInfo.labels.map((label,index) =>
-          <span key={index} title={label} className={index === flapInfo.selectedIndex ? 'selected' : ''} aria-current={index === flapInfo.selectedIndex ? 'true' : undefined}/>)}</div>}
-      </section>
-      <section className="fd-spoilers fd-tile"><div className="fd-tile-title">SPEEDBRAKE</div>
-        <button disabled={!active} onClick={() => sendAction('spoilers-toggle')}><strong>{spoiler===null?'---':spoiler<5?'STOWED':`${spoiler}%`}</strong><small>TOGGLE</small></button>
-      </section>
-    </div>
-    <div className="fd-compact-row fd-bottom-control">
-      <TouchBrake active={active} send={sendPedal} ratio={brake}/>
-      <div className="fd-utility-stack">
-        <button className="fd-util-gear" data-gear={gear} aria-label={gearAria} disabled={!active} onClick={()=>sendAction('gear-toggle')}>
-          <span className="fd-gear-label-row"><span>GEAR</span><em>{gear}</em></span>
-          <div className={`fd-gear-visual ${gear === 'UP' ? 'retracted' : ''}`} aria-hidden="true"><i/><i/><i/></div>
-          <strong>{gear === 'DOWN' ? 'RAISE' : gear === 'UP' ? 'LOWER' : 'NO DATA'}</strong>
-        </button>
-        <div className="fd-trim"><span>TRIM</span><button aria-label="Pitch trim nose down" disabled={!active} onClick={()=>sendAction('trim-down')}>−</button><button aria-label="Pitch trim nose up" disabled={!active} onClick={()=>sendAction('trim-up')}>+</button></div>
+        <div className="fd-flap-arrows">
+          <button aria-label="Retract flaps one detent" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.previous === null)} onClick={() => sendAction('flaps-up')}>▲<small>UP</small></button>
+          <button aria-label="Extend flaps one detent" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.next === null)} onClick={() => sendAction('flaps-down')}>▼<small>DN</small></button>
+        </div>
       </div>
+      <div className="fd-flap-foot"><strong>SEL {flapInfo?.label ?? '---'}</strong><small>{flapInfo ? `SURFACE ${flapInfo.actualPercent ?? '---'}%${flapInfo.moving ? ' · MOVING' : ''}` : 'WAITING FOR DATA'}</small></div>
+    </section>
+    <div className="fd-secondary-stack">
+      <button type="button" className="fd-spoilers fd-speedbrake-button fd-tile" disabled={!active}
+        onClick={() => sendAction('spoilers-toggle')}
+        aria-label={`Toggle speedbrake. ${spoiler === null ? 'Feedback unavailable' : spoiler < 5 ? 'Stowed' : `Deployed ${spoiler}%`}`}>
+        <span className="fd-speedbrake-heading">SPEEDBRAKE</span>
+        <strong className={spoiler !== null && spoiler >= 5 ? 'fd-speedbrake-active' : ''}>{spoiler===null ? '---' : spoiler<5 ? 'STOWED' : `${spoiler}% EXT`}</strong>
+      </button>
+      <TouchBrake active={active} send={sendPedal} ratio={brake}/>
+      <button className="fd-gear-panel fd-tile" data-state={gear.state} disabled={!active} aria-label={`Toggle landing gear. ${gear.headline}. ${gear.detail}`} onClick={() => sendAction('gear-toggle')}>
+        <span className="fd-gear-top"><b>GEAR</b><strong>{gear.headline}</strong></span>
+        <span className="fd-gear-assembly" aria-label="Three individual landing gear deployment indications">
+          {gear.lamps.map((lamp, i) => <span key={i} className="fd-gear-leg" data-lamp={lamp} aria-label={`${['LEFT','NOSE','RIGHT'][i]} gear: ${lamp}`}>
+            <span className="fd-gear-leg-name">{['L','N','R'][i]}</span>
+            <svg viewBox="0 0 30 35" role="presentation" aria-hidden="true">
+              <path d="M15 2V20M11 6H19M11 20L7 25M19 20L23 25" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round"/>
+              <circle cx="8" cy="28" r="4.6" stroke="currentColor" strokeWidth="1.8" fill="#071420"/>
+              <circle cx="22" cy="28" r="4.6" stroke="currentColor" strokeWidth="1.8" fill="#071420"/>
+            </svg>
+          </span>)}
+        </span>
+        <span className="fd-gear-bottom">{gear.detail}</span>
+      </button>
+      <section className="fd-trim-panel fd-tile">
+        <div className="fd-tile-title">PITCH TRIM <span>{trimDirection} {trimValue}</span></div>
+        <div className="fd-trim-controls">
+          <button aria-label="Pitch trim nose up one step" disabled={!active} onClick={() => sendAction('trim-up')}>▲<small>UP</small></button>
+          <div className="fd-trim-indicator"><i className="fd-trim-center"/><i className="fd-trim-pointer" style={{left: `${50 + 47 * (trim ?? 0)}%`}}/><span>{trim === null ? '---' : trimValue}</span></div>
+          <button aria-label="Pitch trim nose down one step" disabled={!active} onClick={() => sendAction('trim-down')}>▼<small>DN</small></button>
+        </div>
+      </section>
     </div>
   </div>;
 }

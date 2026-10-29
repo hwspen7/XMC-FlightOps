@@ -4,7 +4,6 @@ import type { ReturnTypeFlightController } from '../viewTypes';
 import { B787PrimaryFlightDisplay } from '../components/mobile/B787PrimaryFlightDisplay';
 import { ThrottleLever } from '../components/mobile/ThrottleLever';
 import { CompactFlightControls } from '../components/mobile/CompactFlightControls';
-import { CockpitViewPad } from '../components/mobile/CockpitViewPad';
 import { MobileSettings } from '../components/mobile/MobileSettings';
 import { percentDeflection } from '../telemetry/format';
 
@@ -116,7 +115,6 @@ export function MobileCockpit({ flight, onDesktop }: Props) {
         </div>
       </div>
       <div className="fd-right">
-        <CockpitViewPad active={controlsAvailable} send={flight.sendAuxiliary}/>
         <CompactFlightControls telemetry={data} live={live} active={controlsAvailable} sendPedal={flight.sendPedal} sendAction={flight.sendAuxiliary}/>
       </div>
     </main>
