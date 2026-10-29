@@ -2,14 +2,16 @@ import type { Quaternion } from '../motion/quaternion';
 import { relativeRotationDegrees } from '../motion/quaternion';
 
 /**
- * Fixed, linear yoke response. The physical travel values represent comfortable
+ * Fixed, low-latency yoke response. The physical travel values represent comfortable
  * phone movement, not the aircraft's aerodynamic control-surface deflection.
  * The aircraft's own flight model still determines its actual response.
+ * An instantaneous, monotonic soft-center curve improves fine corrections.
  */
 export const FIXED_FLIGHT_RESPONSE = Object.freeze({
-  rollTravelDegrees: 45,
-  pitchTravelDegrees: 25,
+  rollTravelDegrees: 60,
+  pitchTravelDegrees: 35,
   deadZone: 0.015,
+  centerGain: 0.85,
 });
 
 export interface YokeOutput {
@@ -20,22 +22,22 @@ export interface YokeOutput {
 }
 
 export const ZERO_OUTPUT: YokeOutput = {
-  roll: 0,
-  pitch: 0,
-  rawRollDegrees: 0,
-  rawPitchDegrees: 0,
+  roll: 0, pitch: 0, rawRollDegrees: 0, rawPitchDegrees: 0,
 };
 
 function clamp(value: number): number {
   return Math.max(-1, Math.min(1, value));
 }
 
-/** A small sensor-noise dead zone; otherwise completely linear. */
+/** Static soft-center mapping, with no time-based smoothing or latency. */
 export function response(value: number, deadZone = FIXED_FLIGHT_RESPONSE.deadZone): number {
   const bounded = clamp(value);
   const magnitude = Math.abs(bounded);
   if (magnitude <= deadZone) return 0;
-  return (Math.sign(bounded) * (magnitude - deadZone)) / (1 - deadZone);
+  const normalized = (magnitude - deadZone) / (1 - deadZone);
+  const shaped = normalized * (FIXED_FLIGHT_RESPONSE.centerGain +
+    (1 - FIXED_FLIGHT_RESPONSE.centerGain) * normalized * normalized);
+  return Math.sign(bounded) * shaped;
 }
 
 /**
@@ -47,9 +49,7 @@ export class YokeController {
   private neutral: Quaternion | null = null;
   private calibratedLandscape: 90 | 270 | null = null;
 
-  isCalibrated(): boolean {
-    return this.neutral !== null;
-  }
+  isCalibrated(): boolean { return this.neutral !== null; }
 
   calibrate(current: Quaternion, screenAngle = 90): void {
     this.neutral = { ...current };
@@ -71,8 +71,8 @@ export class YokeController {
     // Orientation changes invalidate the previous center and must be recalibrated.
     if (landscape !== this.calibratedLandscape) return ZERO_OUTPUT;
     const rotation = relativeRotationDegrees(this.neutral, current);
-    // Preserve sensor roll for the attitude display. Phone-local roll orientation
-    // is opposite the X-Plane yoke input convention (-1 left, +1 right).
+    // The validated phone-local roll polarity is opposite to X-Plane yoke roll.
+    // Preserve the raw rotation for motion diagnostics, but invert command only.
     const rollDegrees = rotation.z;
     const pitchDegrees = (landscape === 90 ? -1 : 1) * rotation.y;
     return {

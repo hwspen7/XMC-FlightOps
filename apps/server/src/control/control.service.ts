@@ -34,6 +34,10 @@ export class ControlService {
   private throttleCommand: number | null = null;
   private lastThrottleAt = 0;
   private lastAuxAt = 0;
+  private lastPedalAt = new Map<string, number>();
+  private rudderCommand: number | null = null;
+  private brakeCommand: number | null = null;
+  private reverseCommand: number | null = null;
 
   constructor(private readonly simulator: XPlaneService) {}
 
@@ -51,6 +55,9 @@ export class ControlService {
       lastAction: this.lastAction,
       lastActionAt: this.lastActionAt,
       throttleCommand: this.throttleCommand,
+      rudderCommand: this.owner ? this.rudderCommand : null,
+      brakeCommand: this.owner ? this.brakeCommand : null,
+      reverseCommand: this.owner ? this.reverseCommand : null,
     };
   }
 
@@ -95,6 +102,8 @@ export class ControlService {
   throttle(client: object, value: unknown): boolean {
     if (!this.isOwner(client) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) return false;
     if (Date.now() - this.lastThrottleAt < 80) return false;
+    const status = this.simulator.status();
+    if (status.telemetry.autothrottleOn === 1) return false;
     this.lastThrottleAt = Date.now();
     if (!this.simulator.throttle(value)) return false;
     this.throttleCommand = value;
@@ -113,8 +122,29 @@ export class ControlService {
     return true;
   }
 
-  disarm(client?: object): boolean {
-    if (!this.owner || (client && this.owner !== client)) return false;
+  pedal(client: object, data: unknown): boolean {
+    if (!this.isOwner(client) || !data || typeof data !== 'object') return false;
+    const { action, value } = data as { action?: unknown; value?: unknown };
+    if (action !== 'rudder' && action !== 'brakes' && action !== 'reverse') return false;
+    if (typeof value !== 'number' || !Number.isFinite(value) ||
+        (action === 'rudder' ? Math.abs(value) > 1 : value < 0 || value > 1)) return false;
+    const status = this.simulator.status();
+    if (!status.reachable || status.nativeArmed !== true || status.transport !== 'native') return false;
+    if (action === 'reverse' && value > 0 && (status.telemetry.onGround !== 1 ||
+        status.telemetry.throttleRatio === null || status.telemetry.throttleRatio > 0.06)) return false;
+    if (action === 'rudder' && status.telemetry.autopilotServosOn === 1) return false;
+    const now = Date.now();
+    // Brake releases and reverse-to-idle always bypass the normal rate limit.
+    if (value !== 0 && now - (this.lastPedalAt.get(action) ?? 0) < 35) return false;
+    if (!this.simulator.pedal(action, value)) return false;
+    this.lastPedalAt.set(action, now);
+    if (action === 'rudder') this.rudderCommand = value;
+    if (action === 'brakes') this.brakeCommand = value;
+    if (action === 'reverse') this.reverseCommand = value;
+    return true;
+  }
+
+  private clearOwner(): void {
     this.owner = null;
     this.armIssuedAt = 0;
     this.nativeConfirmed = false;
@@ -124,8 +154,35 @@ export class ControlService {
     this.lastInput = null;
     this.inputRateHz = 0;
     this.throttleCommand = null;
+    this.rudderCommand = null;
+    this.brakeCommand = null;
+    this.reverseCommand = null;
+    this.lastPedalAt.clear();
+  }
+
+  disarm(client?: object): boolean {
+    if (!this.owner || (client && this.owner !== client)) return false;
+    this.clearOwner();
     this.simulator.deactivate();
     return true;
+  }
+
+  /** An unexpected interruption pauses the aircraft and drops ownership. */
+  suspend(client?: object): boolean {
+    if (!this.owner || (client && this.owner !== client)) return false;
+    this.clearOwner();
+    this.simulator.suspend();
+    return true;
+  }
+
+  /** Resuming is an explicit pilot action requiring recent physical input. */
+  resume(client: object, now = Date.now()): boolean {
+    if (!this.isOwner(client) || !this.lastAcceptedAt || now - this.lastAcceptedAt > 250) return false;
+    const status = this.simulator.status();
+    if (!status.outputEnabled || !status.reachable || status.transport !== 'native' ||
+        status.nativeArmed !== true || status.simPaused !== true ||
+        status.nativeInterrupted !== true || status.pauseOwned !== true) return false;
+    return this.simulator.resume();
   }
 
   /**
@@ -141,7 +198,7 @@ export class ControlService {
       return null;
     }
     if (this.nativeConfirmed) {
-      this.disarm();
+      this.suspend();
       return 'lost';
     }
     if (now - this.armIssuedAt >= 900) {
@@ -153,7 +210,7 @@ export class ControlService {
 
   checkTimeout(now = Date.now()): boolean {
     if (!this.owner || now - this.lastFrameAt < TIMEOUT_MS) return false;
-    this.disarm();
+    this.suspend();
     return true;
   }
 }

@@ -16,7 +16,7 @@ private:
         int array_index;
         XPLMDataRef reference = nullptr;
     };
-    static constexpr std::size_t field_count = 27;
+    static constexpr std::size_t field_count = 43;
     std::array<Field, field_count> fields_{{
         {"rollDegrees", "sim/flightmodel/position/phi", 1, -1},
         {"pitchDegrees", "sim/flightmodel/position/theta", 1, -1},
@@ -45,6 +45,22 @@ private:
         {"autopilotServosOn", "sim/cockpit2/autopilot/servos_on", 1, -1},
         {"n1LeftPercent", "sim/cockpit2/engine/indicators/N1_percent", 1, 0},
         {"n1RightPercent", "sim/cockpit2/engine/indicators/N1_percent", 1, 1},
+        {"simJoystickRollRatio", "sim/joystick/yoke_roll_ratio", 1, -1},
+        {"simJoystickPitchRatio", "sim/joystick/yoke_pitch_ratio", 1, -1},
+        {"cockpitYokeRollRatio", "sim/cockpit2/controls/yoke_roll_ratio", 1, -1},
+        {"cockpitYokePitchRatio", "sim/cockpit2/controls/yoke_pitch_ratio", 1, -1},
+        {"effectiveRollRatio", "sim/cockpit2/controls/total_roll_ratio", 1, -1},
+        {"effectivePitchRatio", "sim/cockpit2/controls/total_pitch_ratio", 1, -1},
+        {"rollOverrideState", "sim/operation/override/override_joystick_roll", 1, -1},
+        {"pitchOverrideState", "sim/operation/override/override_joystick_pitch", 1, -1},
+        {"rudderRatio", "sim/joystick/yoke_heading_ratio", 1, -1},
+        {"rudderOverrideState", "sim/operation/override/override_joystick_heading", 1, -1},
+        {"leftBrakeRatio", "sim/cockpit2/controls/left_brake_ratio", 1, -1},
+        {"rightBrakeRatio", "sim/cockpit2/controls/right_brake_ratio", 1, -1},
+        {"reverseHandleRatio", "sim/cockpit2/engine/actuators/throttle_jet_rev_ratio_all", 1, -1},
+        {"onGround", "sim/flightmodel/failures/onground_any", 1, -1},
+        {"autothrottleOn", "sim/cockpit2/autopilot/autothrottle_on", 1, -1},
+        {"wheelBrakeRatio", "sim/cockpit2/controls/wheel_brake_ratio", 1, -1},
     }};
 };
 }  // namespace xmc

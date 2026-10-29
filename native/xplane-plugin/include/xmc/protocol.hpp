@@ -4,7 +4,7 @@
 #include <string_view>
 
 namespace xmc {
-enum class Operation { Arm, Control, Disarm, Throttle, Action };
+enum class Operation { Arm, Control, Disarm, Suspend, Resume, Throttle, Rudder, Brakes, Reverse, Action };
 struct Command {
     Operation operation;
     std::uint64_t sequence = 0;

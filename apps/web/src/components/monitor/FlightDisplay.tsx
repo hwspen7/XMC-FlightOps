@@ -2,6 +2,7 @@ import { MonitorUp } from 'lucide-react';
 import { useId } from 'react';
 import type { FlightTelemetry } from '@xplane/shared';
 import { displayValue, normalizedHeading } from '../../telemetry/format';
+import { horizonTransform, liveAircraftAttitude } from '../../telemetry/attitude';
 
 interface Props {
   telemetry: FlightTelemetry;
@@ -12,10 +13,9 @@ const PITCH_MARKS = [-60, -50, -40, -30, -20, -10, 10, 20, 30, 40, 50, 60];
 
 export function FlightDisplay({ telemetry, live }: Props) {
   const id = useId().replace(/:/g, '');
-  const attitudeLive = live && telemetry.rollDegrees !== null && telemetry.pitchDegrees !== null;
-  const roll = attitudeLive ? telemetry.rollDegrees! : 0;
-  const pitch = attitudeLive ? telemetry.pitchDegrees! : 0;
-  const attitudeTransform = `translate(380 182) rotate(${-roll}) translate(0 ${pitch * 3.6})`;
+  const attitude = liveAircraftAttitude(telemetry, live);
+  const attitudeLive = attitude !== null;
+  const attitudeTransform = attitude ? horizonTransform(attitude, 380, 182, 3.6) : '';
 
   return (
     <section className="surface flight-display" aria-label="X-Plane primary flight display">

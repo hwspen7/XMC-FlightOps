@@ -24,7 +24,7 @@ export function useFlightController() {
     if (processor.current.isCalibrated() && !processor.current.matchesOrientation(sample.screenAngle)) {
       // A flipped screen changes the physical pitch axis. Release authority.
       transmitting.current = false;
-      socket.send('disarm');
+      socket.send('suspend');
       processor.current.reset();
       setCalibrated(false);
       setOutput(ZERO_OUTPUT);
@@ -69,7 +69,8 @@ export function useFlightController() {
   }, [motion.lastSample]);
 
   const arm = useCallback(() => {
-    if (!calibrated || !motion.enabled || !socket.connected) {
+    if (!calibrated || !motion.enabled || !socket.connected ||
+        (!socket.sessionRestored && !/^\d{6}$/.test(pairingCode.trim()))) {
       setLocalError('Connect the server, enable sensors, and recenter before arming.');
       return;
     }
@@ -81,7 +82,7 @@ export function useFlightController() {
     sequence.current = 0;
     lastTransmitAt.current = 0;
     socket.send('arm', { pairingCode: pairingCode.trim() });
-  }, [calibrated, motion.enabled, motion.lastSample, pairingCode, socket.connected, socket.send]);
+  }, [calibrated, motion.enabled, motion.lastSample, pairingCode, socket.connected, socket.sessionRestored, socket.send]);
 
   const disarm = useCallback(() => {
     transmitting.current = false;
@@ -90,23 +91,52 @@ export function useFlightController() {
   }, [socket.send]);
 
   useEffect(() => {
-    const disarmWhenHidden = () => {
-      if (document.visibilityState === 'hidden') {
-        transmitting.current = false;
-        socket.send('disarm');
-      }
-    };
-    const onPageHide = () => {
+    let interrupted = false;
+    const suspendForInterruption = () => {
+      if (interrupted) return;
+      interrupted = true;
       transmitting.current = false;
-      socket.send('disarm');
+      // This message is best effort. The server and native plugin independently
+      // suspend flight when incoming control samples stop.
+      socket.send('suspend');
+      processor.current.reset();
+      setCalibrated(false);
+      setOutput(ZERO_OUTPUT);
     };
-    document.addEventListener('visibilitychange', disarmWhenHidden);
-    window.addEventListener('pagehide', onPageHide);
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') suspendForInterruption();
+      else interrupted = false;
+    };
+    const onPageShow = () => { interrupted = false; };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', suspendForInterruption);
+    window.addEventListener('pageshow', onPageShow);
     return () => {
-      document.removeEventListener('visibilitychange', disarmWhenHidden);
-      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', suspendForInterruption);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, [socket.send]);
+
+  useEffect(() => {
+    if (!localError) return;
+    const timer = setTimeout(() => setLocalError(null), 4500);
+    return () => clearTimeout(timer);
+  }, [localError]);
+
+  const resumeFlight = useCallback(() => {
+    const simulator = socket.serverStatus.simulator;
+    if (!socket.connected || !socket.serverStatus.ownedByYou ||
+        !calibrated || !motion.enabled ||
+        simulator.nativeArmed !== true || simulator.pauseOwned !== true ||
+        simulator.nativeInterrupted !== true || simulator.simPaused !== true ||
+        performance.now() - (motion.lastSample.current?.timestamp ?? 0) > 500) {
+      setLocalError('Recenter, restore native control, then resume the flight.');
+      return;
+    }
+    if (!socket.send('resume')) setLocalError('The server is disconnected. Flight remains paused.');
+  }, [calibrated, motion.enabled, motion.lastSample, socket.connected,
+      socket.serverStatus.ownedByYou, socket.serverStatus.simulator, socket.send]);
 
   const stopSensors = useCallback(() => {
     disarm();
@@ -124,9 +154,19 @@ export function useFlightController() {
     if (socket.serverStatus.ownedByYou && socket.serverStatus.simulator.outputEnabled) socket.send('throttle', ratio);
   }, [socket.send, socket.serverStatus.ownedByYou, socket.serverStatus.simulator.outputEnabled]);
 
+  const sendPedal = useCallback((action: 'rudder' | 'brakes' | 'reverse', value: number) => {
+    if (socket.connected && socket.serverStatus.ownedByYou && socket.serverStatus.simulator.nativeArmed === true) {
+      socket.send('pedal', { action, value });
+    }
+  }, [socket.connected, socket.send, socket.serverStatus.ownedByYou, socket.serverStatus.simulator.nativeArmed]);
+  const startRecording = useCallback(() => socket.send('recording-start'), [socket.send]);
+  const stopRecording = useCallback(() => socket.send('recording-stop'), [socket.send]);
+  const exportRecording = useCallback(() => socket.send('recording-export'), [socket.send]);
+
   return {
+    sendPedal, startRecording, stopRecording, exportRecording,
     sendAuxiliary, sendThrottle, output, calibrated,
     pairingCode, setPairingCode, localError,
-    motion, socket, arm, disarm, recenter, stopSensors,
+    motion, socket, arm, disarm, recenter, resumeFlight, stopSensors,
   };
 }
