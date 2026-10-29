@@ -14,6 +14,13 @@ describe('simulator telemetry', () => {
   it('converts ground speed meters per second to knots', () => {
     expect(applyTelemetryValue(emptyTelemetry(), 3105, 100, 200).groundSpeedKnots).toBeCloseTo(194.384, 2);
   });
+  it('maps engine and load telemetry without inventing absent sensors', () => {
+    const initial = emptyTelemetry();
+    expect(initial.egtLeftC).toBeNull();
+    expect(initial.normalLoadG).toBeNull();
+    expect(applyTelemetryValue(initial, 3164, 624, 900).egtLeftC).toBe(624);
+    expect(applyTelemetryValue(initial, 3160, 1.15, 900).normalLoadG).toBe(1.15);
+  });
   it('rejects unknown indices and non-finite values', () => {
     const current = emptyTelemetry();
     expect(applyTelemetryValue(current, 9999, 1, 100)).toBe(current);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import type { AuxiliaryAction, FlightTelemetry } from '@xplane/shared';
 import { brakeLevelForDisplacement } from './flightDeckGestures';
 import { buildFlapDisplay } from './flapProfiles';
@@ -58,8 +59,14 @@ function Steering({ active, ground, send }: { active: boolean; ground: boolean; 
     <section className="fd-ground fd-tile">
       <div className="fd-tile-title">GROUND TURN <span>{ground ? 'GROUND ONLY' : 'AIR LOCK'}</span></div>
       <div className="fd-ground-turn-buttons">
-        <button aria-label="Hold for ground left turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, -45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}>◀ <span>LEFT</span></button>
-        <button aria-label="Hold for ground right turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, 45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}><span>RIGHT</span> ▶</button>
+        <button type="button" className="fd-ground-turn-button fd-ground-turn-button--left" aria-label="Hold for ground left turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, -45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}>
+          <span className="fd-ground-turn-icon" aria-hidden="true"><ArrowLeft size={15} strokeWidth={2.5}/></span>
+          <span className="fd-ground-turn-label">LEFT</span>
+        </button>
+        <button type="button" className="fd-ground-turn-button fd-ground-turn-button--right" aria-label="Hold for ground right turn" disabled={!active || !ground} onPointerDown={e => beginGround(e, 45)} onPointerUp={endGround} onPointerCancel={endGround} onLostPointerCapture={endGround}>
+          <span className="fd-ground-turn-label">RIGHT</span>
+          <span className="fd-ground-turn-icon" aria-hidden="true"><ArrowRight size={15} strokeWidth={2.5}/></span>
+        </button>
       </div>
     </section>
   </>;
@@ -125,11 +132,14 @@ export function CompactFlightControls({ telemetry, live, active, sendPedal, send
   const position = flapInfo && flapInfo.labels.length > 1 ? 100 * selected / (flapInfo.labels.length - 1) : 0;
   return <div className="fd-extra-controls">
     <Steering active={active} ground={ground} send={sendPedal}/>
-    <section className="fd-flaps fd-tile">
-      <div className="fd-tile-title">FLAPS <span>{flapInfo?.model ?? 'NO DATA'}</span></div>
-      <div className="fd-flap-current">{flapInfo?.label ?? '---'}</div>
-      <div className="fd-flap-vertical">
-        <div className="fd-flap-rail" aria-label="Aircraft flap detent scale">
+    <section className="fd-flaps fd-flaps-spacious fd-tile" aria-label="Aircraft flap controls">
+      <div className="fd-tile-title fd-flaps-spacious-header">
+        <strong>FLAPS</strong>
+        <span title={flapInfo?.model ?? 'Aircraft telemetry unavailable'}>{flapInfo?.model ?? 'NO DATA'}</span>
+      </div>
+      <div className="fd-flap-current" aria-live="off">{flapInfo?.label ?? '---'}</div>
+      <div className="fd-flap-vertical fd-flaps-spacious-body">
+        <div className="fd-flap-rail" aria-label={flapInfo ? `Flap detents for ${flapInfo.model}, selected ${flapInfo.label}` : 'Flap configuration unavailable'}>
           {flapItems.length ? flapItems.map((label, rev) => {
             const index = flapItems.length - 1 - rev;
             return <div className={`fd-flap-detent ${selected === index ? 'is-selected' : ''}`} key={`${index}-${label}`}>
@@ -139,11 +149,22 @@ export function CompactFlightControls({ telemetry, live, active, sendPedal, send
           {flapItems.length > 0 && <i className="fd-flap-handle" aria-hidden="true" style={{bottom: `${position}%`}}/>}
         </div>
         <div className="fd-flap-arrows">
-          <button aria-label="Retract flaps one detent" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.previous === null)} onClick={() => sendAction('flaps-up')}>▲<small>UP</small></button>
-          <button aria-label="Extend flaps one detent" disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.next === null)} onClick={() => sendAction('flaps-down')}>▼<small>DN</small></button>
+          <button type="button" aria-label={`Retract flaps one detent${flapInfo?.previous ? ` toward ${flapInfo.previous}` : ''}`}
+            disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.previous === null)}
+            onClick={() => sendAction('flaps-up')}>
+            <span className="fd-flap-arrow-symbol" aria-hidden="true">▲</span><small>UP</small>
+          </button>
+          <button type="button" aria-label={`Extend flaps one detent${flapInfo?.next ? ` toward ${flapInfo.next}` : ''}`}
+            disabled={!active || (flapInfo !== null && flapInfo.labels.length > 0 && flapInfo.next === null)}
+            onClick={() => sendAction('flaps-down')}>
+            <span className="fd-flap-arrow-symbol" aria-hidden="true">▼</span><small>DN</small>
+          </button>
         </div>
       </div>
-      <div className="fd-flap-foot"><strong>SEL {flapInfo?.label ?? '---'}</strong><small>{flapInfo ? `SURFACE ${flapInfo.actualPercent ?? '---'}%${flapInfo.moving ? ' · MOVING' : ''}` : 'WAITING FOR DATA'}</small></div>
+      <div className="fd-flap-foot fd-flaps-spacious-foot" role="status" aria-live="polite">
+        <strong>SEL {flapInfo?.label ?? '---'}</strong>
+        <small>{flapInfo ? `SURFACE ${flapInfo.actualPercent === null ? '---' : `${flapInfo.actualPercent}%`}${flapInfo.moving ? ' · MOVING' : ''}` : 'WAITING FOR DATA'}</small>
+      </div>
     </section>
     <div className="fd-secondary-stack">
       <button type="button" className="fd-spoilers fd-speedbrake-button fd-tile" disabled={!active}

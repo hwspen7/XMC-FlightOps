@@ -1,0 +1,74 @@
+/* Desktop telemetry operations. Scoped to the observer view only. */
+.monitor-operations-v2{background:#071421;color:#e8f2fa;min-height:100vh}
+.monitor-operations-v2 .monitor-unified-header{padding:19px clamp(18px,3.6vw,70px) 0;background:linear-gradient(122deg,#0c2133,#0a1825 58%,#101e30);border-bottom:1px solid #2a485e;box-shadow:0 11px 28px #030d1960}
+.monitor-operations-v2 .monitor-hero-top{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-bottom:18px;border-bottom:1px solid #28445a}
+.monitor-operations-v2 .monitor-brand strong{font-size:21px}
+.monitor-operations-v2 .monitor-hero-content{display:flex;justify-content:space-between;align-items:center;gap:25px;padding:24px 0 20px}
+.monitor-operations-v2 .monitor-hero-content h1{font-size:clamp(27px,2.5vw,43px);margin:9px 0;letter-spacing:-1.2px;line-height:1.15}
+.monitor-operations-v2 .monitor-hero-content h1 span{color:#92bcd8;font-weight:400}
+.monitor-operations-v2 .monitor-hero-content p{font-size:12px;color:#9eb3c7;line-height:1.5;max-width:790px}
+.monitor-operations-v2 .monitor-hero-identity{flex:0 0 auto;min-width:190px;padding:13px 15px;border:1px solid #355b76;border-radius:8px;background:#0d2538;display:flex;gap:11px;align-items:center}
+.monitor-operations-v2 .monitor-hero-identity svg{color:#6bc7f6}
+.monitor-operations-v2 .monitor-hero-identity strong{display:block;font-size:14px;letter-spacing:1.4px}
+.monitor-operations-v2 .monitor-hero-identity span{display:block;margin-top:6px;font-size:9px;letter-spacing:.5px;color:#83a9c0}
+.monitor-operations-v2 .monitor-hero-status{display:flex;align-items:center;gap:0;flex-wrap:wrap;border-top:1px solid #29485e}
+.monitor-operations-v2 .monitor-hero-status span{display:inline-flex;align-items:center;gap:7px;padding:11px 13px 12px;border-right:1px solid #284457;font-size:10px;letter-spacing:.65px;color:#9bb0c1;font-weight:800;white-space:nowrap}
+.monitor-operations-v2 .monitor-hero-status span.good{color:#6bdbca}
+.monitor-operations-v2 .monitor-hero-status span i{width:7px;height:7px;background:#637b90;border-radius:50%;display:block}
+.monitor-operations-v2 .monitor-hero-status .good i{background:#65dac2;box-shadow:0 0 10px #35dfc7}
+.monitor-operations-v2 .monitor-hero-status .monitor-hero-count{margin-left:auto;border:0;color:#91c7e4}
+.monitor-operations-v2 .monitor-main{max-width:1900px;padding-top:22px}
+.monitor-operations-v2 .monitor-kpis{margin-bottom:18px}
+.monitor-operations-v2 .monitor-kpi{background:linear-gradient(160deg,#12304a,#0c2233);border-color:#31536b;min-height:110px;padding:14px}
+.monitor-operations-v2 .monitor-kpi strong{margin-top:11px}
+.monitor-assessment .card-heading{padding-bottom:12px}
+.monitor-assessment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;padding:0 18px 15px}
+.monitor-assessment-item{min-width:0;background:#0c2131;border:1px solid #2b5269;border-radius:8px;padding:14px;min-height:113px}
+.monitor-assessment-item.watch{border-color:#aa774e;background:#292319}
+.monitor-assessment-item.unknown{border-color:#3d5364}
+.monitor-assessment-item>span{display:block;text-transform:uppercase;font-size:10px;color:#7eb5d3;font-weight:800;letter-spacing:.7px}
+.monitor-assessment-item strong{font:750 18px 'Barlow Condensed',Arial,sans-serif;letter-spacing:.35px;display:block;margin-top:8px;color:#e9f6ff}
+.monitor-assessment-item.watch strong{color:#f5bd7b}
+.monitor-assessment-item p{margin-top:7px;font-size:10px;line-height:1.5;color:#91aebe}
+.monitor-quick-readouts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:#24475a;border-top:1px solid #2b465d}
+.monitor-quick-readouts>div{padding:12px 13px;background:#091e2d;min-width:0}
+.monitor-quick-readouts small{display:block;font-size:9px;color:#6ca3c4;letter-spacing:.7px;font-weight:850}
+.monitor-quick-readouts strong{display:block;font:700 21px 'Barlow Condensed',Arial,sans-serif;color:#e8f4ff;margin-top:6px;white-space:nowrap}
+.monitor-section-caption{font-size:12px;color:#7fa2b9;margin-top:6px;max-width:760px}
+.monitor-operations-v2 .monitor-section-header{margin-top:30px}
+.monitor-operations-v2 .monitor-section-header>span{white-space:nowrap}
+.monitor-trend-advanced{display:flex;flex-direction:column;min-height:410px}
+.monitor-trend-advanced .chart-plot{padding:8px 12px 0;flex:1}
+.monitor-trend-advanced .chart-plot svg{height:auto;max-height:none;aspect-ratio:660/253;touch-action:pan-y}
+.monitor-chart-controls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 16px;color:#83aac2;font-size:10px;letter-spacing:.6px;font-weight:800}
+.monitor-chart-controls>div{display:inline-flex;background:#091926;border:1px solid #284c64;border-radius:5px;padding:2px;gap:3px}
+.monitor-chart-controls button{background:transparent;border:0;border-radius:4px;padding:5px 10px;color:#8eaabd;font-size:10px;font-weight:800}
+.monitor-chart-controls button.selected{background:#245576;color:#edfaff}
+.monitor-chart-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#19374b;border-top:1px solid #28485f;border-bottom:1px solid #28485f}
+.monitor-chart-stats span{padding:8px 12px;background:#0e2537;color:#719cb5;font-size:9px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.monitor-chart-stats strong{font:700 15px 'Barlow Condensed',Arial,sans-serif;color:#c8e8fa}
+.monitor-operations-v2 .monitor-series-toggle{gap:6px;padding:11px 13px 14px}
+.monitor-series-toggle button{display:flex;align-items:center;gap:6px;background:#12283a;border:1px solid #2a4a5e;border-radius:6px;padding:7px 9px;color:#abc4d4;font-weight:750;font-size:10px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.monitor-series-toggle button.muted{opacity:.36}
+.monitor-series-toggle i{width:11px;height:4px;flex-shrink:0}
+.monitor-cursor-readout{display:flex;flex-wrap:wrap;gap:12px;padding:5px 14px 9px;min-height:25px;color:#c9e3f6;font-size:10px;font-weight:700}
+.monitor-engine-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:2px 18px 20px}
+.monitor-engine{border:1px solid #2a526b;border-radius:8px;background:#0b2031;padding:17px;min-width:0}
+.monitor-engine h3{margin-bottom:10px;font-size:14px;color:#a5d5ef;letter-spacing:1px}
+.monitor-engine-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(75px,auto) minmax(70px,1fr);align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #284456}
+.monitor-engine-row>span{font-size:11px;color:#8db0c5;font-weight:800}
+.monitor-engine-row strong{font:700 20px 'Barlow Condensed',Arial,sans-serif;color:#e8f5ff;white-space:nowrap}
+.monitor-engine-row strong small{font-size:10px;color:#81aac2}
+.monitor-engine-meter{background:#1e3a4d;height:7px;border-radius:5px;overflow:hidden}
+.monitor-engine-meter i{display:block;height:100%;background:linear-gradient(90deg,#39a0dc,#62daca)}
+.monitor-operations-v2 .data-footnote{padding-top:2px}
+@media(max-width:1120px){.monitor-assessment-grid{grid-template-columns:repeat(2,1fr)}.monitor-quick-readouts{grid-template-columns:repeat(3,1fr)}.monitor-operations-v2 .monitor-hero-status .monitor-hero-count{margin-left:0}}
+@media(max-width:760px){.monitor-operations-v2 .monitor-unified-header{padding:13px 16px 0}.monitor-operations-v2 .monitor-hero-top,.monitor-operations-v2 .monitor-hero-content{flex-wrap:wrap}.monitor-operations-v2 .monitor-hero-identity{width:100%}.monitor-assessment-grid{grid-template-columns:1fr}.monitor-engine-grid{grid-template-columns:1fr}.monitor-quick-readouts{grid-template-columns:repeat(2,minmax(0,1fr))}.monitor-trend-advanced{min-height:345px}.monitor-operations-v2 .monitor-hero-status span{font-size:9px;padding:9px 8px}.monitor-operations-v2 .monitor-main{padding:17px 14px}}
+
+.monitor-chart-stats-matrix{border-top:1px solid #28485f;border-bottom:1px solid #28485f;overflow:hidden}
+.monitor-chart-stats-head,.monitor-chart-stat-row{display:grid;grid-template-columns:minmax(105px,1.8fr) repeat(4,minmax(45px,1fr));gap:5px;padding:7px 11px;align-items:center}
+.monitor-chart-stats-head{background:#15344b;color:#7eaac2;font-size:8px;letter-spacing:.6px;font-weight:900}
+.monitor-chart-stat-row{background:#0c2537;border-top:1px solid #1b3a50;font-size:10px;color:#b7cede}
+.monitor-chart-stat-row>span{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:800}
+.monitor-chart-stat-row strong{font:700 13px 'Barlow Condensed',Arial,sans-serif;text-align:right}
+.monitor-chart-stats-head span:not(:first-child){text-align:right}

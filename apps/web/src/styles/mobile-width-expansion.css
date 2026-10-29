@@ -1,0 +1,17 @@
+/*
+ * Extend the complete landscape flight deck into part of the right safe-area
+ * gutter. The left safe-area and existing grid ratios remain unchanged.
+ * Keeping a minimum right inset protects iPhone rounded corners/gestures.
+ */
+@media (orientation: landscape) and (min-width: 760px) {
+  html.mobile-flight-locked .mobile-cockpit.fd-layout {
+    --fd-width-safe-right: env(safe-area-inset-right, 0px);
+    padding-right: max(9px, calc(var(--fd-width-safe-right) - clamp(12px, 3vw, 32px)));
+  }
+
+  html.mobile-flight-locked .mobile-cockpit.fd-layout .fd-main {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+}

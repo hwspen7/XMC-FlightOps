@@ -8,6 +8,9 @@ import './styles/flight-deck.css';
 import './styles/mobile-controls.css';
 import './styles/mobile-visual-refinement.css';
 import './styles/mobile-speed-tape-refinement.css';
+import './styles/mobile-width-expansion.css';
+import './styles/mobile-flaps-spacious.css';
+import './styles/mobile-ground-turn-refinement.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,
