@@ -1,0 +1,9 @@
+XPlane Motion Controller: professional dense monitor overlay
+- Replaces giant vertically stacked default panels with 12-column high-density operations overview.
+- Preserves three existing advanced operations tabs and existing full telemetry view.
+- Adds PFD-style attitude and relative ground track drawn only from measured simulator readbacks.
+- Adds eight small professional time-series charts with a shared hover cursor, 2m/5m range, reference speed bands, and no-data handling.
+- Adds compact engine, fuel, mobile controller, electrical, hydraulic, flight-control, autopilot, cabin, landing-gear, and brakes indicators.
+- Adds event timeline, advisory evidence, N1 symmetry scatter, and C++ risk components.
+- Keeps data units explicit and avoids synthetic values.
+- Frontend only: no win.xpl deployment needed.

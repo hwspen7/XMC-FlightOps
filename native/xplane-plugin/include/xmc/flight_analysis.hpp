@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include "xmc/flight_phase.hpp"
 #include <chrono>
 #include <cstdint>
 #include <deque>
@@ -27,6 +28,8 @@ enum class FlightAlert : std::uint32_t {
 struct AnalysisResult {
     std::uint32_t alerts = 0;
     int risk_score = 0;
+    int handling_risk = 0, propulsion_risk = 0, systems_risk = 0, approach_risk = 0;
+    int phase = 0;
     int event_count = 0;
     int sample_count = 0;
     std::optional<double> airspeed_trend_knots_min;
@@ -47,6 +50,7 @@ private:
         std::optional<double> altitude;
         std::optional<double> bank;
     };
+    PhaseAnalysis phase_analysis_;
     std::deque<Sample> history_;
     std::array<unsigned, 11> present_{};
     std::array<unsigned, 11> absent_{};

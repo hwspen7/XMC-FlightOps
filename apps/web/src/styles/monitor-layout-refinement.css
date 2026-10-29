@@ -1,0 +1,151 @@
+/*
+ * XMC observer dashboard layout refinement.
+ * Reflows the telemetry and diagnostics cards without stretching the shorter
+ * panel to the taller panel's height. Scoped to the desktop monitor.
+ */
+.monitor-operations-v2 .monitor-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+/* Compact, independently packed parameter groups instead of fixed-height rows. */
+.monitor-operations-v2 .telemetry-groups {
+  display: block;
+  column-count: 3;
+  column-gap: 15px;
+  padding: 4px 19px 14px;
+}
+.monitor-operations-v2 .telemetry-group {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 15px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  vertical-align: top;
+}
+.monitor-operations-v2 .telemetry-row {
+  min-height: 32px;
+}
+.monitor-operations-v2 .telemetry-row > span {
+  min-width: 0;
+}
+
+/* Diagnostics are grouped across the full width, not in one tall sidebar. */
+.monitor-operations-v2 .signal-panel {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  column-gap: 0;
+  padding-bottom: 0;
+}
+.monitor-operations-v2 .signal-panel > .card-heading {
+  grid-column: 1 / -1;
+}
+.monitor-operations-v2 .signal-panel > .signal-stack {
+  grid-column: span 4;
+  padding: 0 16px 17px 19px;
+}
+.monitor-operations-v2 .signal-panel > .diagnostic-grid {
+  grid-column: span 8;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+  padding: 3px 19px 18px 5px;
+  gap: 10px;
+}
+.monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+.monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+  grid-column: span 6;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 13px 19px 18px;
+  border-top: 1px solid #254259;
+}
+.monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+  border-left: 1px solid #254259;
+}
+.monitor-operations-v2 .signal-panel > .pilot-input,
+.monitor-operations-v2 .signal-panel > .signal-note {
+  grid-column: 1 / -1;
+}
+.monitor-operations-v2 .signal-panel > .pilot-input {
+  background: linear-gradient(112deg, #10283b, #0b1d2d);
+  padding: 16px 20px;
+}
+.monitor-operations-v2 .signal-panel > .signal-note {
+  padding: 13px 20px 17px;
+  border-top: 1px solid #24445b;
+}
+
+/* The mobile controller is the penultimate connection row for both
+   native-plugin and legacy-UDP configurations. */
+.monitor-operations-v2 .signal-stack .signal-row:nth-last-child(2) {
+  background: linear-gradient(110deg, #123b49, #102a3d);
+  border: 1px solid #2e7d88;
+  border-radius: 8px;
+  padding: 11px;
+  margin: 8px 0;
+}
+.monitor-operations-v2 .signal-stack .signal-row:nth-last-child(2) .signal-icon {
+  background: #1e4d60;
+  color: #b2edfa;
+}
+.monitor-operations-v2 .signal-stack .signal-row:nth-last-child(2) strong {
+  font-size: 13px;
+  color: #e4f8ff;
+}
+.monitor-operations-v2 .signal-panel .diagnostic-grid > div {
+  min-height: 63px;
+}
+.monitor-operations-v2 .signal-panel .diagnostic-grid strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tablet: fewer parameter columns and easier-to-read diagnostics. */
+@media (max-width: 1250px) {
+  .monitor-operations-v2 .telemetry-groups {
+    column-count: 2;
+  }
+  .monitor-operations-v2 .signal-panel > .signal-stack {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 14px;
+    padding-right: 19px;
+  }
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 13px 19px 18px;
+  }
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-left: 0;
+  }
+}
+@media (max-width: 760px) {
+  .monitor-operations-v2 .telemetry-groups {
+    column-count: 1;
+    padding: 4px 13px 12px;
+  }
+  .monitor-operations-v2 .signal-panel > .signal-stack {
+    grid-template-columns: 1fr;
+    padding: 0 13px 12px;
+  }
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid,
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+  .monitor-operations-v2 .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px 13px;
+  }
+  .monitor-operations-v2 .signal-panel .diagnostic-grid strong {
+    font-size: 18px;
+  }
+}
+@media (max-width: 420px) {
+  .monitor-operations-v2 .signal-panel > .pilot-input {
+    grid-template-columns: 1fr;
+  }
+}

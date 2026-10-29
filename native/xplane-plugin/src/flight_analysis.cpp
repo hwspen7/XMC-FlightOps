@@ -54,6 +54,11 @@ constexpr std::array<int, 11> weights{18, 20, 10, 24, 15, 15, 16, 16, 12, 12, 14
 std::string AnalysisResult::append_fields() const {
     std::string result;
     append_number(result, "nativeRiskScore", risk_score);
+    append_number(result, "nativeFlightPhase", phase);
+    append_number(result, "nativeHandlingRisk", handling_risk);
+    append_number(result, "nativePropulsionRisk", propulsion_risk);
+    append_number(result, "nativeSystemsRisk", systems_risk);
+    append_number(result, "nativeApproachRisk", approach_risk);
     append_number(result, "nativeAlertFlags", alerts);
     append_number(result, "nativeEventCount", event_count);
     append_number(result, "nativeAnalysisSamples", sample_count);
@@ -129,6 +134,18 @@ AnalysisResult FlightAnalysis::process(std::string_view packet, Clock::time_poin
 
     AnalysisResult result;
     result.alerts = active_;
+    result.phase = static_cast<int>(phase_analysis_.update({get(v,"onGround"),agl,ias,vsi}, now));
+    for (std::size_t i = 0; i < weights.size(); ++i) {
+        if (!(active_ & (1u << i))) continue;
+        if (i <= 3) result.handling_risk += weights[i];
+        else if (i == 4) result.propulsion_risk += weights[i];
+        else if (i == 10) result.approach_risk += weights[i];
+        else result.systems_risk += weights[i];
+    }
+    result.handling_risk = std::min(result.handling_risk,100);
+    result.propulsion_risk = std::min(result.propulsion_risk,100);
+    result.approach_risk = std::min(result.approach_risk,100);
+    result.systems_risk = std::min(result.systems_risk,100);
     result.event_count = event_count_;
     result.sample_count = static_cast<int>(history_.size());
     for (std::size_t i = 0; i < weights.size(); ++i)
@@ -161,6 +178,6 @@ AnalysisResult FlightAnalysis::process(std::string_view packet, Clock::time_poin
     return result;
 }
 void FlightAnalysis::reset() {
-    history_.clear(); present_.fill(0); absent_.fill(0); active_ = 0; event_count_ = 0;
+    phase_analysis_.reset(); history_.clear(); present_.fill(0); absent_.fill(0); active_ = 0; event_count_ = 0;
 }
 } // namespace xmc

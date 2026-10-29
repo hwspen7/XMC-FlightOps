@@ -15,7 +15,7 @@ export type NativeMetricField = keyof typeof NATIVE_METRIC_FIELDS;
 export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[NativeMetricField], number>>;
 
 export const NATIVE_FIELDS = [
-  'engineRunningLeft', 'engineRunningRight', 'selectedHeadingDegrees', 'selectedVerticalSpeedFpm', 'flightDirectorMode', 'autopilotHeadingMode', 'autopilotAltitudeMode', 'autopilotNavMode', 'autopilotApproachMode', 'navDeviationDots', 'glideslopeDeviationDots', 'electricalBusVolts', 'batteryVolts', 'generatorLeftOn', 'generatorRightOn', 'hydraulicPressure1Raw', 'hydraulicPressure2Raw', 'hydraulicFluid1Ratio', 'cabinAltitudeFeet', 'cabinDifferentialPsi', 'cabinVerticalSpeedFpm', 'pitotHeatOn', 'wingAntiIceOn', 'wingIceRatio', 'nativeRiskScore', 'nativeAlertFlags', 'nativeEventCount', 'nativeAnalysisSamples', 'nativeIasTrendKtMin', 'nativeAltitudeTrendFpm', 'nativeBankRmsDegrees',
+  'engineRunningLeft', 'engineRunningRight', 'selectedHeadingDegrees', 'selectedVerticalSpeedFpm', 'flightDirectorMode', 'autopilotHeadingMode', 'autopilotAltitudeMode', 'autopilotNavMode', 'autopilotApproachMode', 'navDeviationDots', 'glideslopeDeviationDots', 'electricalBusVolts', 'batteryVolts', 'generatorLeftOn', 'generatorRightOn', 'hydraulicPressure1Raw', 'hydraulicPressure2Raw', 'hydraulicFluid1Ratio', 'cabinAltitudeFeet', 'cabinDifferentialPsi', 'cabinVerticalSpeedFpm', 'pitotHeatOn', 'wingAntiIceOn', 'wingIceRatio', 'nativeRiskScore', 'nativeFlightPhase', 'nativeHandlingRisk', 'nativePropulsionRisk', 'nativeSystemsRisk', 'nativeApproachRisk', 'nativeAlertFlags', 'nativeEventCount', 'nativeAnalysisSamples', 'nativeIasTrendKtMin', 'nativeAltitudeTrendFpm', 'nativeBankRmsDegrees',
   'normalLoadG', 'outsideAirTempC', 'n2LeftPercent', 'n2RightPercent', 'egtLeftC', 'egtRightC', 'fuelFlowLeftKgS', 'fuelFlowRightKgS', 'oilPressureLeftPsi', 'oilPressureRightPsi', 'grossWeightKg', 'fuelWeightKg',
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
   'speedVsoKnots', 'speedVsKnots', 'speedVfeKnots', 'speedVnoKnots', 'speedVneKnots', 'selectedAltitudeFeet',
@@ -109,6 +109,8 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
           key === 'reverseActive' || key === 'onGround' || key === 'autothrottleOn' || key === 'mouseYokeActive' ||
           key === 'mouseYokeHideAvailable') && parsed !== 0 && parsed !== 1)) return null;
     if (key === 'flapDetentCount' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 10)) return null;
+    if (key === 'nativeFlightPhase' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 7)) return null;
+    if (['nativeHandlingRisk','nativePropulsionRisk','nativeSystemsRisk','nativeApproachRisk'].includes(key) && (!Number.isInteger(parsed) || parsed < 0 || parsed > 100)) return null;
     if (key === 'nativeRiskScore' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 100)) return null;
     if (key === 'nativeAlertFlags' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 2047)) return null;
     if ((key === 'nativeEventCount' || key === 'nativeAnalysisSamples') && (!Number.isInteger(parsed) || parsed < 0 || parsed > 1000000)) return null;

@@ -114,6 +114,11 @@ export interface FlightTelemetry {
   wingAntiIceOn: number | null;
   wingIceRatio: number | null;
   nativeRiskScore: number | null;
+  nativeFlightPhase?: number | null;
+  nativeHandlingRisk?: number | null;
+  nativePropulsionRisk?: number | null;
+  nativeSystemsRisk?: number | null;
+  nativeApproachRisk?: number | null;
   nativeAlertFlags: number | null;
   nativeEventCount: number | null;
   nativeAnalysisSamples: number | null;

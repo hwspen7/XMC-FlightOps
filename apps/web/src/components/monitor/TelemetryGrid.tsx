@@ -1,8 +1,10 @@
 import type { FlightTelemetry } from '@xplane/shared';
 import { displayValue } from '../../telemetry/format';
 
+// The -? modifier removes optionality from the mapped result, preventing
+// optional telemetry fields from introducing undefined into the key union.
 type NumericKey = Exclude<{
-  [Key in keyof FlightTelemetry]: FlightTelemetry[Key] extends number | null ? Key : never
+  [Key in keyof FlightTelemetry]-?: FlightTelemetry[Key] extends number | null ? Key : never
 }[keyof FlightTelemetry], 'receivedAt'>;
 interface Cell { key: NumericKey; name: string; unit: string; decimals?: number; ratio?: boolean; }
 interface Group { heading: string; detail: string; entries: Cell[]; }
