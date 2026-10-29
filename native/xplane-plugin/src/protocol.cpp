@@ -73,8 +73,9 @@ std::optional<Command> parse_command(std::string_view packet, std::string_view t
         return cmd;
     }
     if (count == 4 && parts[2] == "ACTION") {
-        constexpr std::array<std::string_view, 6> allowed{
-            "trim-up", "trim-down", "flaps-up", "flaps-down", "gear-toggle", "spoilers-toggle"};
+        constexpr std::array<std::string_view, 13> allowed{
+            "trim-up", "trim-down", "flaps-up", "flaps-down", "gear-toggle", "spoilers-toggle",
+            "view-left", "view-right", "view-up", "view-down", "view-center", "view-zoom-in", "view-zoom-out"};
         for (auto name : allowed) if (parts[3] == name) return Command{Operation::Action, 0, 0, 0, 0, parts[3]};
     }
     return std::nullopt;

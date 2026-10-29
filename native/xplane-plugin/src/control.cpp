@@ -16,13 +16,20 @@ void ControlSurface::resolve() {
     right_brake_ = XPLMFindDataRef("sim/cockpit2/controls/right_brake_ratio");
 }
 bool ControlSurface::action(std::string_view name) {
-    constexpr std::array<std::pair<std::string_view, const char*>, 6> commands{{
+    constexpr std::array<std::pair<std::string_view, const char*>, 13> commands{{
         {"trim-up", "sim/flight_controls/pitch_trim_up"},
         {"trim-down", "sim/flight_controls/pitch_trim_down"},
         {"flaps-up", "sim/flight_controls/flaps_up"},
         {"flaps-down", "sim/flight_controls/flaps_down"},
         {"gear-toggle", "sim/flight_controls/landing_gear_toggle"},
         {"spoilers-toggle", "sim/flight_controls/speed_brakes_toggle"},
+        {"view-left", "sim/general/rot_left"},
+        {"view-right", "sim/general/rot_right"},
+        {"view-up", "sim/general/rot_up"},
+        {"view-down", "sim/general/rot_down"},
+        {"view-center", "sim/view/3d_cockpit_cmnd_look"},
+        {"view-zoom-in", "sim/general/zoom_in"},
+        {"view-zoom-out", "sim/general/zoom_out"},
     }};
     for (auto [key, path] : commands) {
         if (name != key) continue;

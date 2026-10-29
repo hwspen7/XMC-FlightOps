@@ -7,6 +7,13 @@ export const COMMAND_PATHS: Record<AuxiliaryAction, string> = {
   'flaps-down': 'sim/flight_controls/flaps_down',
   'gear-toggle': 'sim/flight_controls/landing_gear_toggle',
   'spoilers-toggle': 'sim/flight_controls/speed_brakes_toggle',
+  'view-left': 'sim/general/rot_left',
+  'view-right': 'sim/general/rot_right',
+  'view-up': 'sim/general/rot_up',
+  'view-down': 'sim/general/rot_down',
+  'view-center': 'sim/view/3d_cockpit_cmnd_look',
+  'view-zoom-in': 'sim/general/zoom_in',
+  'view-zoom-out': 'sim/general/zoom_out',
 };
 
 export function isAuxiliaryAction(value: unknown): value is AuxiliaryAction {

@@ -9,7 +9,9 @@ export interface ControlFrame {
   tiltPitchDegrees?: number;
 }
 
-export type AuxiliaryAction = 'trim-up' | 'trim-down' | 'flaps-up' | 'flaps-down' | 'gear-toggle' | 'spoilers-toggle';
+export type AuxiliaryAction = 'trim-up' | 'trim-down' | 'flaps-up' | 'flaps-down' | 'gear-toggle' | 'spoilers-toggle'
+  | 'view-left' | 'view-right' | 'view-up' | 'view-down'
+  | 'view-center' | 'view-zoom-in' | 'view-zoom-out';
 
 export interface FlightTelemetry {
   rollDegrees: number | null;
@@ -33,6 +35,11 @@ export interface FlightTelemetry {
   machNumber: number | null;
   throttleRatio: number | null;
   flapRatio: number | null;
+  // Lever request, actual deployment and configured positions are distinct.
+  flapHandleRatio: number | null;
+  flapDeployRatio: number | null;
+  flapDetentCount: number | null;
+  aircraftIcao: string | null;
   speedbrakeRatio: number | null;
   elevatorTrimRatio: number | null;
   gearHandleDown: number | null;

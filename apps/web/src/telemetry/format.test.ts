@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { displayValue, normalizedHeading, percentDeflection } from './format';
+import { EMPTY_FLIGHT_TELEMETRY, displayValue, normalizedHeading, percentDeflection } from './format';
 
 describe('telemetry formatting', () => {
+  it('starts with unavailable aircraft and flap configuration fields', () => {
+    expect(EMPTY_FLIGHT_TELEMETRY.aircraftIcao).toBeNull();
+    expect(EMPTY_FLIGHT_TELEMETRY.flapHandleRatio).toBeNull();
+    expect(EMPTY_FLIGHT_TELEMETRY.flapDeployRatio).toBeNull();
+    expect(EMPTY_FLIGHT_TELEMETRY.flapDetentCount).toBeNull();
+  });
   it('does not invent missing aircraft values', () => {
     expect(displayValue(null)).toBe('---');
     expect(normalizedHeading(null)).toBe('---');

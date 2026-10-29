@@ -14,6 +14,13 @@ describe('native transport protocol', () => {
       .toMatchObject({ rudderRatio: -0.2, onGround: 1, mouseYokeHideAvailable: 0 });
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|onGround=7`), TOKEN)).toBeNull();
   });
+  it('parses the configured aircraft and separates flap handle from physical deployment', () => {
+    const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|aircraftIcao=B738|flapDetentCount=9|flapHandleRatio=0.375|flapDeployRatio=0.22`);
+    expect(parseNativeTelemetry(packet, TOKEN)?.values).toEqual({ aircraftIcao: 'B738', flapDetentCount: 9, flapHandleRatio: 0.375, flapDeployRatio: 0.22 });
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|aircraftIcao=B738|aircraftIcao=B789`), TOKEN)).toBeNull();
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|aircraftIcao=B7\|38`), TOKEN)).toBeNull();
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|flapDetentCount=100`), TOKEN)).toBeNull();
+  });
   it('decodes authenticated flight data', () => {
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|rollDegrees=12.5|altitudeFeet=4800`), TOKEN))
       .toEqual({ armed: true, armError: null, values: { rollDegrees: 12.5, altitudeFeet: 4800 } });
@@ -35,6 +42,9 @@ describe('native transport protocol', () => {
     expect(encodeNativeControl(TOKEN, 8, -0.3, 0.5).toString()).toContain('|CTRL|8|-0.3|0.5');
     expect(() => encodeNativeControl(TOKEN, 8, 2, 0)).toThrow();
     expect(() => encodeNativeAction(TOKEN, 'unknown')).toThrow();
+    expect(encodeNativeAction(TOKEN, 'view-left').toString()).toContain('|ACTION|view-left');
+    expect(encodeNativeAction(TOKEN, 'view-center').toString()).toContain('|ACTION|view-center');
+    expect(() => encodeNativeAction(TOKEN, 'sim/operation/quit')).toThrow();
   });
   it('validates interruption state and emits authenticated suspend/resume controls', () => {
     expect(encodeNativeSuspend(TOKEN).toString()).toBe(`XMC1|${TOKEN}|SUSPEND`);

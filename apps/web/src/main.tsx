@@ -4,6 +4,7 @@ import { App } from './App';
 import './styles/cockpit.css';
 import './styles/monitor.css';
 import './styles/responsive.css';
+import './styles/flight-deck.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,

@@ -25,6 +25,9 @@ int main() {
     assert(!parse_command("XMC1|A_ValidPrivateToken123|CTRL|4|nan|0", token));
     assert(!parse_command("XMC1|A_ValidPrivateToken123|ACTION|invalid", token));
     assert(parse_command("XMC1|A_ValidPrivateToken123|ACTION|trim-up", token));
+    assert(parse_command("XMC1|A_ValidPrivateToken123|ACTION|view-left", token));
+    assert(parse_command("XMC1|A_ValidPrivateToken123|ACTION|view-center", token));
+    assert(!parse_command("XMC1|A_ValidPrivateToken123|ACTION|sim/operation/quit", token));
     assert(parse_command("XMC1|A_ValidPrivateToken123|THROTTLE|0.75", token));
     assert(!parse_command("XMC1|A_ValidPrivateToken123|THROTTLE|1.2", token));
     assert(parse_command("XMC1|A_ValidPrivateToken123|RUDDER|-0.5", token)->operation == Operation::Rudder);

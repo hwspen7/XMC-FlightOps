@@ -20,7 +20,7 @@ export const NATIVE_FIELDS = [
   'trueAirspeedKnots', 'aglFeet', 'angleOfAttackDegrees', 'sideslipDegrees',
   'rollRateDegreesPerSecond', 'pitchRateDegreesPerSecond', 'yawRateDegreesPerSecond',
   'latitudeDegrees', 'longitudeDegrees', 'flightPathDegrees', 'machNumber',
-  'throttleRatio', 'flapRatio', 'speedbrakeRatio', 'elevatorTrimRatio',
+  'throttleRatio', 'flapRatio', 'flapHandleRatio', 'flapDeployRatio', 'flapDetentCount', 'aircraftIcao', 'speedbrakeRatio', 'elevatorTrimRatio',
   'gearHandleDown', 'autopilotServosOn', 'n1LeftPercent', 'n1RightPercent',
   'simJoystickRollRatio', 'simJoystickPitchRatio', 'cockpitYokeRollRatio', 'cockpitYokePitchRatio',
   'effectiveRollRatio', 'effectivePitchRatio', 'rollOverrideState', 'pitchOverrideState',
@@ -48,13 +48,15 @@ const ARM_ERRORS = new Set<NativeArmError>([
 ]);
 const AUXILIARY_ACTIONS = new Set([
   'trim-up', 'trim-down', 'flaps-up', 'flaps-down', 'gear-toggle', 'spoilers-toggle',
+  'view-left', 'view-right', 'view-up', 'view-down',
+  'view-center', 'view-zoom-in', 'view-zoom-out',
 ]);
 
 export interface NativeSample {
   armed: boolean;
   pause?: { simPaused: boolean; nativeInterrupted: boolean; pauseOwned: boolean };
   armError: NativeArmError | null;
-  values: Partial<Record<(typeof NATIVE_FIELDS)[number], number>>;
+  values: Partial<Pick<FlightTelemetry, (typeof NATIVE_FIELDS)[number]>>;
   metrics?: NativeMetricValues;
 }
 
@@ -91,6 +93,11 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
       seenMetrics.add(key);
       continue;
     }
+    if (key === 'aircraftIcao') {
+      if (Object.prototype.hasOwnProperty.call(values, key) || !/^[A-Za-z0-9-]{2,8}$/.test(value)) return null;
+      values.aircraftIcao = value.toUpperCase();
+      continue;
+    }
     if (!KEYS.has(key) || value.length > 32 || value.trim() === '') return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
@@ -98,7 +105,8 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
         ((key === 'rollOverrideState' || key === 'pitchOverrideState' || key === 'rudderOverrideState' ||
           key === 'reverseActive' || key === 'onGround' || key === 'autothrottleOn' || key === 'mouseYokeActive' ||
           key === 'mouseYokeHideAvailable') && parsed !== 0 && parsed !== 1)) return null;
-    values[key as keyof typeof values] = parsed;
+    if (key === 'flapDetentCount' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 10)) return null;
+    (values as Record<string, string | number | null>)[key] = parsed;
   }
   if (fields[2] === 'armed=1' && armError !== null && armError !== 'none') return null;
   const pauseCount = Object.keys(pauseFields).length;
