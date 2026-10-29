@@ -52,11 +52,19 @@ std::optional<Command> parse_command(std::string_view packet, std::string_view t
     if (count < 3 || parts[0] != "XMC1" || !token_equals(parts[1], token)) return std::nullopt;
     if (count == 3 && parts[2] == "ARM") return Command{Operation::Arm, 0, 0, 0, 0, {}};
     if (count == 3 && parts[2] == "DISARM") return Command{Operation::Disarm, 0, 0, 0, 0, {}};
+    if (count == 3 && parts[2] == "SUSPEND") return Command{Operation::Suspend, 0, 0, 0, 0, {}};
+    if (count == 3 && parts[2] == "RESUME") return Command{Operation::Resume, 0, 0, 0, 0, {}};
     if (count == 6 && parts[2] == "CTRL") {
         Command cmd{Operation::Control, 0, 0, 0, 0, {}};
         if (!parse_sequence(parts[3], cmd.sequence) ||
             !parse_float(parts[4], cmd.roll) || !parse_float(parts[5], cmd.pitch) ||
             std::fabs(cmd.roll) > 1 || std::fabs(cmd.pitch) > 1) return std::nullopt;
+        return cmd;
+    }
+    if (count == 4 && (parts[2] == "RUDDER" || parts[2] == "BRAKES" || parts[2] == "REVERSE")) {
+        Command cmd{parts[2] == "RUDDER" ? Operation::Rudder : parts[2] == "BRAKES" ? Operation::Brakes : Operation::Reverse};
+        if (!parse_float(parts[3], cmd.throttle) ||
+            (parts[2] == "RUDDER" ? std::fabs(cmd.throttle) > 1 : cmd.throttle < 0 || cmd.throttle > 1)) return std::nullopt;
         return cmd;
     }
     if (count == 4 && parts[2] == "THROTTLE") {

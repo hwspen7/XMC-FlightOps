@@ -9,7 +9,16 @@ export const EMPTY_FLIGHT_TELEMETRY: FlightTelemetry = {
   latitudeDegrees: null, longitudeDegrees: null, flightPathDegrees: null,
   machNumber: null, throttleRatio: null, flapRatio: null, speedbrakeRatio: null,
   elevatorTrimRatio: null, gearHandleDown: null, autopilotServosOn: null,
-  n1LeftPercent: null, n1RightPercent: null, receivedAt: null,
+  n1LeftPercent: null, n1RightPercent: null,
+  simJoystickRollRatio: null, simJoystickPitchRatio: null,
+  cockpitYokeRollRatio: null, cockpitYokePitchRatio: null,
+  effectiveRollRatio: null, effectivePitchRatio: null,
+  rollOverrideState: null, pitchOverrideState: null,
+  nativeCommandRollRatio: null, nativeCommandPitchRatio: null,
+  rudderRatio: null, rudderOverrideState: null, leftBrakeRatio: null, rightBrakeRatio: null,
+  wheelBrakeRatio: null, reverseHandleRatio: null, reverseActive: null, onGround: null,
+  autothrottleOn: null, mouseYokeActive: null, mouseYokeHideAvailable: null,
+  receivedAt: null,
 };
 
 export function displayValue(value: number | null, decimals = 0): string {

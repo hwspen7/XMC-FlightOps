@@ -5,7 +5,7 @@ import { settings } from '../configuration/settings';
 import { emptyTelemetry } from '../xplane/telemetry';
 import {
   NATIVE_FIELDS, encodeNativeAction, encodeNativeArm, encodeNativeControl,
-  encodeNativeDisarm, encodeNativeThrottle, parseNativeTelemetry,
+  encodeNativeDisarm, encodeNativeResume, encodeNativeSuspend, encodeNativeThrottle, encodeNativePedal, parseNativeTelemetry,
 } from './native-protocol';
 
 @Injectable()
@@ -24,6 +24,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
   private feedbackRoundTripMs: number | null = null;
   private feedbackMeasuredAt = 0;
   private lastAckSequence = -1;
+  private lastPause: { simPaused: boolean; nativeInterrupted: boolean; pauseOwned: boolean } | null = null;
 
   onModuleInit(): void {
     if (settings.transport !== 'native') return;
@@ -40,6 +41,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       this.lastTelemetryAt = now;
       this.armedReported = decoded.armed;
       this.armErrorReported = decoded.armError;
+      this.lastPause = decoded.pause ?? null;
       if (!decoded.armed) {
         this.pendingControlFrames.clear();
         this.lastAckSequence = -1;
@@ -96,6 +98,9 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       transport: 'native',
       nativeArmed: reachable ? this.armedReported : null,
       nativeArmError: reachable ? this.armErrorReported : null,
+      simPaused: reachable ? this.lastPause?.simPaused ?? null : null,
+      nativeInterrupted: reachable ? this.lastPause?.nativeInterrupted ?? null : null,
+      pauseOwned: reachable ? this.lastPause?.pauseOwned ?? null : null,
       nativeDiagnostics: reachable && this.lastMetrics ? {
         ...this.lastMetrics,
         feedbackRoundTripMs: this.feedbackMeasuredAt && now - this.feedbackMeasuredAt < 2000
@@ -147,9 +152,33 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
     this.send(encodeNativeDisarm(settings.nativeToken));
   }
 
+  suspend(): void {
+    if (!settings.outputEnabled) return;
+    this.pendingControlFrames.clear();
+    this.lastAckSequence = -1;
+    // Background-page messages can be lost. The independent native watchdog
+    // pauses when control frames stop even if both SUSPEND packets are lost.
+    this.send(encodeNativeSuspend(settings.nativeToken));
+    this.send(encodeNativeSuspend(settings.nativeToken));
+  }
+
+  resume(): boolean {
+    const status = this.status();
+    if (!settings.outputEnabled || !status.reachable || status.nativeArmed !== true ||
+        status.simPaused !== true || status.nativeInterrupted !== true || status.pauseOwned !== true) return false;
+    this.send(encodeNativeResume(settings.nativeToken));
+    return true;
+  }
+
   throttle(ratio: number): boolean {
     if (!settings.outputEnabled || !this.status().reachable || !this.armedReported) return false;
     this.send(encodeNativeThrottle(settings.nativeToken, ratio));
+    return true;
+  }
+
+  pedal(action: 'rudder' | 'brakes' | 'reverse', value: number): boolean {
+    if (!settings.outputEnabled || !this.status().reachable || !this.armedReported) return false;
+    this.send(encodeNativePedal(settings.nativeToken, action, value));
     return true;
   }
 

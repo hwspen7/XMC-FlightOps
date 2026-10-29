@@ -106,6 +106,11 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
+  pedal(action: 'rudder' | 'brakes' | 'reverse', value: number): boolean {
+    // New operations are native-only; legacy transport must not silently emulate them.
+    return this.active && settings.transport === 'native' && this.native.pedal(action, value);
+  }
+
   action(action: AuxiliaryAction): boolean {
     if (settings.transport === 'native') return this.active && this.native.action(action);
     if (!this.active || !settings.outputEnabled || !this.status().reachable) return false;
@@ -120,6 +125,22 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
     this.send(PITCH_DATAREF, 0);
     this.send(OVERRIDE_DATAREF, 0);
     this.active = false;
+  }
+
+  suspend(): void {
+    if (!this.active) return;
+    if (settings.transport === 'native') {
+      this.native.suspend();
+      this.active = false;
+      return;
+    }
+    // Legacy UDP has no authenticated acknowledgement of pause ownership;
+    // fail closed by releasing the joystick override, never blindly toggling pause.
+    this.deactivate();
+  }
+
+  resume(): boolean {
+    return this.active && settings.transport === 'native' && this.native.resume();
   }
 
   private probe(): void {

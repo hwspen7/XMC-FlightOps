@@ -1,4 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
+import { ControllerSession } from './controller-session';
+import { FlightRecorder } from '../flight-recording/flight-recorder';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import type { ArmRequest, ServerNotice, ServerStatus, SocketMessage } from '@xplane/shared';
 import { Server, WebSocket } from 'ws';
@@ -13,6 +15,9 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   private readonly clock = setInterval(() => this.tick(), 100);
   private lastStatusAt = 0;
   private readonly attempts = new WeakMap<WebSocket, { count: number; windowStart: number }>();
+  private readonly session = new ControllerSession();
+  private sessionClient: WebSocket | null = null;
+  private readonly recording = new FlightRecorder();
 
   @WebSocketServer() server!: Server;
 
@@ -26,24 +31,48 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   handleDisconnect(client: WebSocket): void {
-    if (this.control.disarm(client)) this.broadcastStatus();
+    if (this.sessionClient === client) this.sessionClient = null;
+    if (this.control.suspend(client)) {
+      this.logger.warn('Controller connection lost; requested simulator pause');
+      this.broadcastStatus();
+    }
+  }
+
+  @SubscribeMessage('rejoin')
+  onRejoin(@ConnectedSocket() client: WebSocket, @MessageBody() data: unknown): void {
+    const ticket = data && typeof data === 'object' ? (data as { ticket?: unknown }).ticket : null;
+    const replacement = this.session.rejoin(ticket);
+    if (!replacement) {
+      this.send(client, 'session', { restored: false });
+      return;
+    }
+    // If Safari left a stale WebSocket on the server, do not transfer an
+    // active aircraft override to an uncalibrated page. Pause it first.
+    if (this.control.isArmed()) this.control.suspend();
+    this.sessionClient = client;
+    this.send(client, 'session', { restored: true, ticket: replacement });
+    this.sendStatus(client);
+    this.broadcastStatus();
   }
 
   @SubscribeMessage('arm')
   onArm(@ConnectedSocket() client: WebSocket, @MessageBody() data: ArmRequest): void {
-    const now = Date.now();
-    const previous = this.attempts.get(client);
-    const attempts = previous && now - previous.windowStart < 60_000
-      ? previous : { count: 0, windowStart: now };
-    attempts.count++;
-    this.attempts.set(client, attempts);
-    if (attempts.count > 5) {
-      this.notice(client, 'Too many pairing attempts. Try again shortly.', 'error');
-      return;
-    }
-    if (!data || typeof data.pairingCode !== 'string' || data.pairingCode !== settings.pairingCode) {
-      this.notice(client, 'Invalid pairing code', 'error');
-      return;
+    const alreadyPaired = this.sessionClient === client;
+    if (!alreadyPaired) {
+      const now = Date.now();
+      const previous = this.attempts.get(client);
+      const attempts = previous && now - previous.windowStart < 60_000
+        ? previous : { count: 0, windowStart: now };
+      attempts.count++;
+      this.attempts.set(client, attempts);
+      if (attempts.count > 5) {
+        this.notice(client, 'Too many pairing attempts. Try again shortly.', 'error');
+        return;
+      }
+      if (!data || typeof data.pairingCode !== 'string' || data.pairingCode !== settings.pairingCode) {
+        this.notice(client, 'Invalid pairing code', 'error');
+        return;
+      }
     }
     if (settings.outputEnabled && !this.simulator.status().reachable) {
       this.notice(client, 'X-Plane has not responded to the simulator probe', 'error');
@@ -52,6 +81,10 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
     if (!this.control.arm(client)) {
       this.notice(client, 'Another controller is already armed', 'error');
       return;
+    }
+    if (!alreadyPaired) {
+      this.sessionClient = client;
+      this.send(client, 'session', { restored: true, ticket: this.session.issue() });
     }
     this.logger.log('Controller armed');
     this.broadcastStatus();
@@ -72,6 +105,44 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
     if (!this.control.auxiliary(client, action)) this.notice(client, 'Flight control command not accepted.', 'error');
   }
 
+  @SubscribeMessage('pedal')
+  onPedal(@ConnectedSocket() client: WebSocket, @MessageBody() data: unknown): void {
+    if (!this.control.pedal(client, data)) {
+      // Silent on rate-limited inputs: no modal notices during flight.
+    }
+  }
+
+  @SubscribeMessage('recording-start')
+  onRecordingStart(@ConnectedSocket() client: WebSocket): void {
+    if (!this.control.isOwner(client)) return;
+    this.recording.start(); this.broadcastStatus();
+  }
+  @SubscribeMessage('recording-stop')
+  onRecordingStop(@ConnectedSocket() client: WebSocket): void {
+    if (this.sessionClient !== client) return;
+    this.recording.stop(); this.broadcastStatus();
+  }
+  @SubscribeMessage('recording-export')
+  onRecordingExport(@ConnectedSocket() client: WebSocket): void {
+    if (this.sessionClient !== client || this.control.isArmed() || this.recording.status().active) return;
+    this.send(client, 'recording-csv', { filename: 'xplane-flight-recording.csv', csv: this.recording.csv() });
+  }
+
+  @SubscribeMessage('suspend')
+  onSuspend(@ConnectedSocket() client: WebSocket): void {
+    if (this.control.suspend(client)) {
+      this.logger.warn('Controller interrupted; requested simulator pause');
+      this.broadcastStatus();
+    }
+  }
+
+  @SubscribeMessage('resume')
+  onResume(@ConnectedSocket() client: WebSocket): void {
+    if (!this.control.resume(client)) {
+      this.notice(client, 'Resume requires a recent motion sample, confirmed native control and a plugin-owned pause.', 'error');
+    }
+  }
+
   @SubscribeMessage('disarm')
   onDisarm(@ConnectedSocket() client: WebSocket): void {
     if (this.control.disarm(client)) {
@@ -81,8 +152,12 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   private tick(): void {
+    if (this.recording.status().active) {
+      this.recording.capture(this.simulator.status(), this.control.metrics());
+      if (!this.control.isArmed()) this.recording.stop();
+    }
     if (this.control.checkTimeout()) {
-      this.logger.warn('Controller timed out; simulator override released');
+      this.logger.warn('Controller timed out; requested simulator pause and released override');
       this.broadcastStatus();
     }
     const owner = this.control.currentOwner();
@@ -115,6 +190,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
       simulator,
       controlPhase: controlPhase(this.control.isArmed(), simulator),
       control: this.control.metrics(),
+      recording: this.recording.status(),
     } satisfies ServerStatus);
   }
 
@@ -135,6 +211,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   onModuleDestroy(): void {
     clearInterval(this.clock);
-    this.control.disarm();
+    this.control.suspend();
+    this.recording.stop();
   }
 }

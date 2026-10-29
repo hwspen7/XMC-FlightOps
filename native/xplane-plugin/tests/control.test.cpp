@@ -14,6 +14,13 @@ int pitch_override_value = 0;
 float roll_value = 0;
 float pitch_value = 0;
 float throttle_value = 0;
+float reverse_value = 0;
+float rudder_value = 0;
+float left_brake_value = 0;
+float right_brake_value = 0;
+int on_ground_value = 1;
+int autopilot_value = 0;
+int rudder_override_value = 0;
 int executed_commands = 0;
 bool missing_roll_override = false;
 bool writeable = true;
@@ -25,11 +32,19 @@ XPLMDataRef XPLMFindDataRef(const char* path) {
     if (std::strcmp(path, "sim/joystick/yoke_roll_ratio") == 0) return &roll_value;
     if (std::strcmp(path, "sim/joystick/yoke_pitch_ratio") == 0) return &pitch_value;
     if (std::strcmp(path, "sim/cockpit2/engine/actuators/throttle_ratio_all") == 0) return &throttle_value;
+    if (std::strcmp(path, "sim/cockpit2/engine/actuators/throttle_jet_rev_ratio_all") == 0) return &reverse_value;
+    if (std::strcmp(path, "sim/flightmodel/failures/onground_any") == 0) return &on_ground_value;
+    if (std::strcmp(path, "sim/cockpit2/autopilot/servos_on") == 0) return &autopilot_value;
+    if (std::strcmp(path, "sim/operation/override/override_joystick_heading") == 0) return &rudder_override_value;
+    if (std::strcmp(path, "sim/joystick/yoke_heading_ratio") == 0) return &rudder_value;
+    if (std::strcmp(path, "sim/cockpit2/controls/left_brake_ratio") == 0) return &left_brake_value;
+    if (std::strcmp(path, "sim/cockpit2/controls/right_brake_ratio") == 0) return &right_brake_value;
     return nullptr;
 }
 int XPLMCanWriteDataRef(XPLMDataRef ref) { return ref != nullptr && writeable; }
 int XPLMGetDatai(XPLMDataRef ref) { return *static_cast<int*>(ref); }
 void XPLMSetDatai(XPLMDataRef ref, int value) { *static_cast<int*>(ref) = value; }
+float XPLMGetDataf(XPLMDataRef ref) { return *static_cast<float*>(ref); }
 void XPLMSetDataf(XPLMDataRef ref, float value) { *static_cast<float*>(ref) = value; }
 XPLMCommandRef XPLMFindCommand(const char*) { return reinterpret_cast<XPLMCommandRef>(1); }
 void XPLMCommandOnce(XPLMCommandRef) { ++executed_commands; }
@@ -58,13 +73,38 @@ int main() {
     assert(controller.armed() && roll_override_value == 1 && pitch_override_value == 1);
     assert(controller.apply(Command{Operation::Control, 1, 0.3f, -0.4f}));
     assert(roll_value == 0.3f && pitch_value == -0.4f);
+    assert(controller.has_applied_input());
+    assert(controller.applied_roll() == 0.3f && controller.applied_pitch() == -0.4f);
     assert(!controller.apply(Command{Operation::Control, 1, 0, 0}));
     assert(controller.apply(Command{Operation::Throttle, 0, 0, 0, 0.6f}));
     assert(throttle_value == 0.6f);
     assert(controller.apply(Command{Operation::Action, 0, 0, 0, 0, "trim-up"}));
     assert(executed_commands == 1);
+    assert(controller.apply(Command{Operation::Rudder, 0, 0, 0, -0.45f}));
+    assert(rudder_value == -0.45f && rudder_override_value == 1);
+    assert(controller.apply(Command{Operation::Brakes, 0, 0, 0, 0.8f}));
+    assert(left_brake_value == 0.8f && right_brake_value == 0.8f);
+    assert(!controller.apply(Command{Operation::Reverse, 0, 0, 0, 0.4f})); // Throttle not idle.
+    throttle_value = 0.0f;
+    on_ground_value = 0;
+    assert(!controller.apply(Command{Operation::Reverse, 0, 0, 0, 0.4f})); // No reverse in flight.
+    on_ground_value = 1;
+    assert(controller.apply(Command{Operation::Reverse, 0, 0, 0, 0.4f}));
+    assert(reverse_value == -0.4f && controller.reverse_active());
     controller.release();
+    assert(rudder_value == 0 && rudder_override_value == 0);
+    assert(left_brake_value == 0 && right_brake_value == 0 && reverse_value == 0);
+    assert(!controller.has_applied_input());
     assert(!controller.armed() && roll_override_value == 0 && pitch_override_value == 0 && roll_value == 0 && pitch_value == 0);
+    autopilot_value = 1;
+    assert(!controller.apply(Command{Operation::Arm}));
+    assert(controller.arm_error() == "autopilot-active");
+    autopilot_value = 0;
+    assert(controller.apply(Command{Operation::Arm}));
+    autopilot_value = 1;
+    assert(controller.autopilot_handover());
+    assert(!controller.armed());
+    autopilot_value = 0;
     assert(controller.apply(Command{Operation::Arm}));
     std::this_thread::sleep_for(std::chrono::milliseconds(385));
     controller.tick();

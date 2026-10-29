@@ -39,6 +39,22 @@ export const TELEMETRY_DEFINITIONS: readonly TelemetryDefinition[] = [
   { index: 3124, key: 'gearHandleDown', path: 'sim/cockpit2/controls/gear_handle_down', factor: 1, frequency: 3 },
   { index: 3125, key: 'autopilotServosOn', path: 'sim/cockpit2/autopilot/servos_on', factor: 1, frequency: 3 },
   { index: 3126, key: 'n1LeftPercent', path: 'sim/cockpit2/engine/indicators/N1_percent[0]', factor: 1, frequency: 5 },
+  { index: 3128, key: 'simJoystickRollRatio', path: 'sim/joystick/yoke_roll_ratio', factor: 1, frequency: 10 },
+  { index: 3129, key: 'simJoystickPitchRatio', path: 'sim/joystick/yoke_pitch_ratio', factor: 1, frequency: 10 },
+  { index: 3130, key: 'cockpitYokeRollRatio', path: 'sim/cockpit2/controls/yoke_roll_ratio', factor: 1, frequency: 10 },
+  { index: 3131, key: 'cockpitYokePitchRatio', path: 'sim/cockpit2/controls/yoke_pitch_ratio', factor: 1, frequency: 10 },
+  { index: 3132, key: 'effectiveRollRatio', path: 'sim/cockpit2/controls/total_roll_ratio', factor: 1, frequency: 10 },
+  { index: 3133, key: 'effectivePitchRatio', path: 'sim/cockpit2/controls/total_pitch_ratio', factor: 1, frequency: 10 },
+  { index: 3134, key: 'rollOverrideState', path: 'sim/operation/override/override_joystick_roll', factor: 1, frequency: 8 },
+  { index: 3135, key: 'pitchOverrideState', path: 'sim/operation/override/override_joystick_pitch', factor: 1, frequency: 8 },
+  { index: 3136, key: 'rudderRatio', path: 'sim/joystick/yoke_heading_ratio', factor: 1, frequency: 8 },
+  { index: 3137, key: 'rudderOverrideState', path: 'sim/operation/override/override_joystick_heading', factor: 1, frequency: 5 },
+  { index: 3138, key: 'leftBrakeRatio', path: 'sim/cockpit2/controls/left_brake_ratio', factor: 1, frequency: 5 },
+  { index: 3139, key: 'rightBrakeRatio', path: 'sim/cockpit2/controls/right_brake_ratio', factor: 1, frequency: 5 },
+  { index: 3140, key: 'wheelBrakeRatio', path: 'sim/cockpit2/controls/wheel_brake_ratio', factor: 1, frequency: 5 },
+  { index: 3141, key: 'reverseHandleRatio', path: 'sim/cockpit2/engine/actuators/throttle_jet_rev_ratio_all', factor: 1, frequency: 5 },
+  { index: 3142, key: 'onGround', path: 'sim/flightmodel/failures/onground_any', factor: 1, frequency: 4 },
+  { index: 3143, key: 'autothrottleOn', path: 'sim/cockpit2/autopilot/autothrottle_on', factor: 1, frequency: 4 },
   { index: 3127, key: 'n1RightPercent', path: 'sim/cockpit2/engine/indicators/N1_percent[1]', factor: 1, frequency: 5 },
 ];
 
@@ -47,6 +63,7 @@ const byIndex = new Map(TELEMETRY_DEFINITIONS.map((definition) => [definition.in
 export function emptyTelemetry(): FlightTelemetry {
   const telemetry: Record<string, number | null> = { receivedAt: null };
   for (const definition of TELEMETRY_DEFINITIONS) telemetry[definition.key] = null;
+  for (const key of ['reverseActive', 'mouseYokeActive', 'mouseYokeHideAvailable']) telemetry[key] = null;
   return telemetry as unknown as FlightTelemetry;
 }
 

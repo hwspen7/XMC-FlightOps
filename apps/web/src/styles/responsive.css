@@ -88,14 +88,32 @@ html.mobile-flight-locked .mobile-cockpit {
 .mobile-cockpit .mobile-device-state { flex-wrap: nowrap; font-size: 9px; gap: 9px; }
 .mobile-cockpit .mobile-primary-actions { gap: 6px; }
 .mobile-cockpit .mobile-primary-actions button { height: 34px; padding: 0 9px; font-size: 10px; }
-.mobile-cockpit .mobile-alert {
-  position: absolute;
-  z-index: 30;
-  top: 46px;
-  right: max(12px, env(safe-area-inset-right));
-  max-width: min(440px, 85vw);
-  box-shadow: 0 12px 22px #000a;
+.mobile-cockpit .mobile-status { min-width: 0; max-width: 72%; gap: 7px; }
+.mobile-cockpit .mobile-status > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
+.mobile-cockpit .mobile-inline-feedback {
+  font-size: 9px;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #e6ba8a;
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 1px solid #4a5966;
+  padding-left: 7px;
 }
+.mobile-cockpit .mobile-resume-button {
+  border: 1px solid #398caa;
+  background: #165365;
+  border-radius: 9px;
+  color: #ecfbff;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.mobile-cockpit .mobile-resume-button:disabled { opacity: .45; }
 .mobile-cockpit .mobile-settings-panel {
   height: 100%;
   width: min(390px, 100%);
@@ -147,4 +165,38 @@ html.mobile-flight-locked .mobile-cockpit {
     text-align: center;
     padding: 24px;
   }
+}
+
+/* X-Plane-sourced controls remain separate from phone command bars. */
+.mobile-yoke-feedback{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;column-gap:10px;row-gap:3px;width:100%;max-width:440px;margin-top:5px;color:#7d9fb5;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+.mobile-yoke-feedback strong{color:#c9e0ed;font-weight:800;white-space:nowrap}
+.mobile-tracking-state{font-size:8px;letter-spacing:.2px;color:#7db9c9}
+.mobile-tracking-warning{color:#f9bf8d}
+@media (max-height:480px) and (orientation:landscape){.mobile-yoke-feedback{font-size:8px;row-gap:1px;margin-top:3px}.mobile-readouts{margin-top:4px!important;padding-top:4px!important}}
+
+/* Compact landing / ground controls: stays within the established horizontal layout. */
+.mobile-ground-controls{border:1px solid #36536b;border-radius:9px;padding:5px 8px;display:grid;gap:4px;flex-shrink:0;background:#0e2334}
+.ground-header,.ground-row{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.ground-header{font-size:9px;font-weight:800;letter-spacing:.5px;color:#8db4cf}
+.ground-header strong{font-size:8px;color:#dcb576}
+.mobile-ground-controls input[type=range]{width:100%;min-width:0;height:13px;accent-color:#6dadd8;touch-action:none}
+.ground-brake{font-weight:800;font-size:9px;background:#512f2f;border:1px solid #bd6560;border-radius:6px;color:#ffdfd4;padding:6px 8px;touch-action:none;white-space:nowrap}
+.ground-brake:disabled{opacity:.4}
+.ground-reverse{display:flex;align-items:center;gap:5px;min-width:0;flex:1;font-size:9px;color:#a6cadf;font-weight:800}
+.ground-reverse span{white-space:nowrap}
+.ground-reverse input{flex:1}
+.mobile-ground-controls small{font-size:8px;color:#7194a9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mobile-recording-controls{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;color:#7db3c9;white-space:nowrap}
+.mobile-recording-controls button{border:1px solid #416b83;border-radius:5px;background:#153447;color:#d8edf8;padding:5px;font-size:9px;font-weight:800}
+.mobile-recording-controls button:disabled{opacity:.35}
+@media(max-height:500px) and (orientation:landscape){
+ .mobile-right{gap:3px!important}
+ .mobile-cockpit .flight-control-grid{min-height:0;grid-template-rows:repeat(3,minmax(0,1fr));gap:4px}
+ .mobile-cockpit .flight-action{padding:3px;gap:2px;border-radius:7px}
+ .mobile-cockpit .flight-action svg{width:14px;height:14px}
+ .mobile-cockpit .flight-action strong{font-size:12px}
+ .mobile-cockpit .flight-action small{font-size:8px}
+ .mobile-ground-controls{padding:4px;gap:2px}
+ .mobile-ground-controls small{display:none}
+ .mobile-recording-controls span{display:none}
 }
