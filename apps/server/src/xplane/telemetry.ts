@@ -2,7 +2,7 @@ import type { FlightTelemetry } from '@xplane/shared';
 
 interface TelemetryDefinition {
   index: number;
-  key: Exclude<keyof FlightTelemetry, 'receivedAt'>;
+  key: Exclude<keyof FlightTelemetry, 'receivedAt' | 'aircraftIcao'>;
   path: string;
   factor: number;
   frequency: number;
@@ -34,6 +34,9 @@ export const TELEMETRY_DEFINITIONS: readonly TelemetryDefinition[] = [
   { index: 3119, key: 'machNumber', path: 'sim/flightmodel/misc/machno', factor: 1, frequency: 4 },
   { index: 3120, key: 'throttleRatio', path: 'sim/cockpit2/engine/actuators/throttle_ratio_all', factor: 1, frequency: 5 },
   { index: 3121, key: 'flapRatio', path: 'sim/cockpit2/controls/flap_ratio', factor: 1, frequency: 5 },
+  { index: 3144, key: 'flapHandleRatio', path: 'sim/cockpit2/controls/flap_handle_request_ratio', factor: 1, frequency: 5 },
+  { index: 3145, key: 'flapDeployRatio', path: 'sim/cockpit2/controls/flap_system_deploy_ratio', factor: 1, frequency: 5 },
+  { index: 3146, key: 'flapDetentCount', path: 'sim/aircraft/controls/acf_flap_detents', factor: 1, frequency: 1 },
   { index: 3122, key: 'speedbrakeRatio', path: 'sim/cockpit2/controls/speedbrake_ratio', factor: 1, frequency: 5 },
   { index: 3123, key: 'elevatorTrimRatio', path: 'sim/cockpit2/controls/elevator_trim', factor: 1, frequency: 5 },
   { index: 3124, key: 'gearHandleDown', path: 'sim/cockpit2/controls/gear_handle_down', factor: 1, frequency: 3 },
@@ -61,7 +64,7 @@ export const TELEMETRY_DEFINITIONS: readonly TelemetryDefinition[] = [
 const byIndex = new Map(TELEMETRY_DEFINITIONS.map((definition) => [definition.index, definition]));
 
 export function emptyTelemetry(): FlightTelemetry {
-  const telemetry: Record<string, number | null> = { receivedAt: null };
+  const telemetry: Record<string, number | string | null> = { receivedAt: null, aircraftIcao: null };
   for (const definition of TELEMETRY_DEFINITIONS) telemetry[definition.key] = null;
   for (const key of ['reverseActive', 'mouseYokeActive', 'mouseYokeHideAvailable']) telemetry[key] = null;
   return telemetry as unknown as FlightTelemetry;

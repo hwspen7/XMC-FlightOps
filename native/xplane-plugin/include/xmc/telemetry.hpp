@@ -16,7 +16,8 @@ private:
         int array_index;
         XPLMDataRef reference = nullptr;
     };
-    static constexpr std::size_t field_count = 43;
+    static constexpr std::size_t field_count = 46;
+    XPLMDataRef aircraft_icao_ = nullptr;
     std::array<Field, field_count> fields_{{
         {"rollDegrees", "sim/flightmodel/position/phi", 1, -1},
         {"pitchDegrees", "sim/flightmodel/position/theta", 1, -1},
@@ -39,6 +40,9 @@ private:
         {"machNumber", "sim/flightmodel/misc/machno", 1, -1},
         {"throttleRatio", "sim/cockpit2/engine/actuators/throttle_ratio_all", 1, -1},
         {"flapRatio", "sim/cockpit2/controls/flap_ratio", 1, -1},
+        {"flapHandleRatio", "sim/cockpit2/controls/flap_handle_request_ratio", 1, -1},
+        {"flapDeployRatio", "sim/cockpit2/controls/flap_system_deploy_ratio", 1, -1},
+        {"flapDetentCount", "sim/aircraft/controls/acf_flap_detents", 1, -1},
         {"speedbrakeRatio", "sim/cockpit2/controls/speedbrake_ratio", 1, -1},
         {"elevatorTrimRatio", "sim/cockpit2/controls/elevator_trim", 1, -1},
         {"gearHandleDown", "sim/cockpit2/controls/gear_handle_down", 1, -1},

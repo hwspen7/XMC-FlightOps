@@ -1,7 +1,9 @@
 import type { FlightTelemetry } from '@xplane/shared';
 import { displayValue } from '../../telemetry/format';
 
-type NumericKey = Exclude<keyof FlightTelemetry, 'receivedAt'>;
+type NumericKey = Exclude<{
+  [Key in keyof FlightTelemetry]: FlightTelemetry[Key] extends number | null ? Key : never
+}[keyof FlightTelemetry], 'receivedAt'>;
 interface Cell { key: NumericKey; name: string; unit: string; decimals?: number; ratio?: boolean; }
 interface Group { heading: string; detail: string; entries: Cell[]; }
 
@@ -29,6 +31,9 @@ const GROUPS: Group[] = [
   { heading:'Flight controls', detail:'COCKPIT & ENGINE ACTUATORS', entries:[
     { key:'throttleRatio',name:'Throttle levers',unit:'%',ratio:true },
     { key:'flapRatio',name:'Flap position',unit:'%',ratio:true },
+    { key:'flapHandleRatio',name:'Flap handle',unit:'%',ratio:true },
+    { key:'flapDeployRatio',name:'Flap deployment',unit:'%',ratio:true },
+    { key:'flapDetentCount',name:'Configured flap detents',unit:'',decimals:0 },
     { key:'speedbrakeRatio',name:'Speedbrakes',unit:'%',ratio:true },
     { key:'elevatorTrimRatio',name:'Elevator trim',unit:'%',ratio:true },
     { key:'gearHandleDown',name:'Gear handle',unit:'',decimals:0 },
@@ -39,11 +44,11 @@ const GROUPS: Group[] = [
 ];
 
 function cellValue(cell: Cell, telemetry: FlightTelemetry, live: boolean) {
-  if (!live || telemetry[cell.key] === null) return '---';
-  const value = telemetry[cell.key]!;
+  const value = telemetry[cell.key];
+  if (!live || typeof value !== 'number' || !Number.isFinite(value)) return '---';
   if (cell.key === 'gearHandleDown') return value > .5 ? 'DOWN' : 'UP';
   if (cell.key === 'autopilotServosOn') return value > .5 ? 'ENGAGED' : 'OFF';
-  return displayValue(cell.ratio ? value*100 : value, cell.decimals ?? 0);
+  return displayValue(cell.ratio ? value * 100 : value, cell.decimals ?? 0);
 }
 
 export function TelemetryGrid({ telemetry, live }: { telemetry: FlightTelemetry; live: boolean }) {
