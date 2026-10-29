@@ -1,0 +1,29 @@
+/* Targeted speed-tape and control refinements. Do not replace original cockpit CSS. */
+@media (orientation:landscape) {
+  /* Stable single-line handle label at max reverse, even at tiny widths. */
+  .fd-layout .fd-lever-handle{min-width:0;box-sizing:border-box;overflow:hidden;}
+  .fd-layout .fd-lever-handle strong{
+    display:block;width:100%;text-align:center;white-space:nowrap;
+    font-variant-numeric:tabular-nums;line-height:1.15;
+    font-size:clamp(10px,1.2vw,15px);letter-spacing:0;
+  }
+  .fd-layout .fd-lever-handle.fd-lever-max-reverse strong{font-size:clamp(9px,1.05vw,13px);}
+  /* The complete speedbrake tile is one large accessible button. */
+  .fd-layout .fd-secondary-stack > .fd-speedbrake-button{
+    display:flex;flex-direction:column;align-items:stretch;justify-content:center;
+    width:100%;height:100%;margin:0;padding:4px 6px;gap:2px;
+    background:linear-gradient(145deg,#112b3f,#091927);
+    border:1px solid #3f6480;border-radius:5px;color:#e2f4ff;
+    cursor:pointer;touch-action:manipulation;box-sizing:border-box;
+  }
+  .fd-layout .fd-speedbrake-button .fd-speedbrake-heading{
+    color:#b0d9ef;font-size:9px;font-weight:850;letter-spacing:.3px;text-align:left;
+  }
+  .fd-layout .fd-speedbrake-button strong{
+    color:#57dda9;font-size:clamp(10px,1.15vw,14px);line-height:1.2;
+    text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .fd-layout .fd-speedbrake-button strong.fd-speedbrake-active{color:#efbd70;}
+  .fd-layout .fd-speedbrake-button:active:not(:disabled){background:#1b465f;}
+  .fd-layout .fd-speedbrake-button:focus-visible{outline:2px solid #56caff;outline-offset:-3px;}
+}

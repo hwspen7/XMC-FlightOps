@@ -19,6 +19,12 @@ export interface FlightTelemetry {
   headingDegrees: number | null;
   magneticHeadingDegrees: number | null;
   indicatedAirspeedKnots: number | null;
+  speedVsoKnots: number | null;
+  speedVsKnots: number | null;
+  speedVfeKnots: number | null;
+  speedVnoKnots: number | null;
+  speedVneKnots: number | null;
+  selectedAltitudeFeet: number | null;
   trueAirspeedKnots: number | null;
   groundSpeedKnots: number | null;
   altitudeFeet: number | null;
@@ -43,6 +49,9 @@ export interface FlightTelemetry {
   speedbrakeRatio: number | null;
   elevatorTrimRatio: number | null;
   gearHandleDown: number | null;
+  gearDeploy0Ratio: number | null;
+  gearDeploy1Ratio: number | null;
+  gearDeploy2Ratio: number | null;
   autopilotServosOn: number | null;
   n1LeftPercent: number | null;
   n1RightPercent: number | null;

@@ -23,41 +23,70 @@ export function B787PrimaryFlightDisplay({ telemetry, live }: Props) {
   const attitude = liveAircraftAttitude(telemetry, live);
   const ias = live ? telemetry.indicatedAirspeedKnots : null;
   const alt = live ? telemetry.altitudeFeet : null;
+  const selectedAltitude = live ? telemetry.selectedAltitudeFeet : null;
+  const speedBands = live ? {
+    vso: telemetry.speedVsoKnots, vs: telemetry.speedVsKnots,
+    vfe: telemetry.speedVfeKnots, vno: telemetry.speedVnoKnots,
+    vne: telemetry.speedVneKnots,
+  } : null;
+  // These are Plane Maker reference speeds, not a dynamic Boeing FMC envelope.
+  const speedToY = (speed: number) => 181 - (speed - (ias ?? 0)) * 2;
+  const speedBand = (low: number | null, high: number | null, color: string, x: number, width: number) => {
+    if (ias === null || low === null || high === null || !Number.isFinite(low) || !Number.isFinite(high) ||
+        high <= low || low < 0 || high > 1500) return null;
+    const yTop = Math.max(43, Math.min(307, speedToY(high)));
+    const yBottom = Math.max(43, Math.min(307, speedToY(low)));
+    return yBottom > yTop ? <rect x={x} y={yTop} width={width} height={yBottom-yTop} fill={color}/> : null;
+  };
+  const selectedY = alt !== null && selectedAltitude !== null && Number.isFinite(selectedAltitude) &&
+    selectedAltitude >= -1500 && selectedAltitude <= 65000
+    ? 181 - (selectedAltitude - alt) * .19 : null;
   const vsi = live ? telemetry.verticalSpeedFpm : null;
   const heading = live ? telemetry.magneticHeadingDegrees ?? telemetry.headingDegrees : null;
-  const transform = attitude ? horizonTransform(attitude, 272, 181, 3.8) : '';
+  const transform = attitude ? horizonTransform(attitude, 272, 176, 4.0) : '';
+  const headingNormalized = heading !== null && live && Number.isFinite(heading)
+    ? ((heading % 360) + 360) % 360 : null;
+  const compassTicks = headingNormalized === null ? [] : Array.from({ length: 13 }, (_, i) => {
+    const angle = Math.round(headingNormalized / 10) * 10 + (i - 6) * 10;
+    return { angle: ((angle % 360) + 360) % 360, x: 272 + (angle - headingNormalized) * 2.25, major: angle % 30 === 0 };
+  });
   return <section className="xmc-pfd" aria-label="X-Plane primary flight display">
     <svg viewBox="0 0 640 365" preserveAspectRatio="xMidYMid meet" role="img" aria-label={attitude ? 'Live X-Plane attitude, airspeed, altitude and heading' : 'Waiting for real X-Plane aircraft telemetry'}>
       <defs>
-        <clipPath id={`${id}-attitude`}><rect x="101" y="33" width="342" height="276" /></clipPath>
+        <clipPath id={`${id}-attitude`}><rect x="101" y="29" width="342" height="290" /></clipPath>
         <clipPath id={`${id}-speed`}><rect x="4" y="43" width="92" height="264"/></clipPath>
         <clipPath id={`${id}-alt`}><rect x="448" y="43" width="96" height="264"/></clipPath>
       </defs>
       <rect x=".5" y=".5" width="639" height="364" fill="#050f1b" stroke="#36536d"/>
-      <rect x="0" y="0" width="640" height="32" fill="#0a1d31"/>
-      <path d="M0 32H640 M99 32V309 M445 32V309 M546 32V309 M0 310H640" stroke="#3c617e" strokeWidth="1.5"/>
-      <g fill="#78c9fa" fontSize="13" fontWeight="750" letterSpacing="1"><text x="13" y="21">IAS / KT</text><text x="458" y="21">ALT / FT</text><text x="557" y="21">V/S</text></g>
+      <rect x="0" y="0" width="640" height="28" fill="#0a1d31"/>
+      <path d="M0 28H640 M99 28V319 M445 28V319 M546 28V319 M0 320H640" stroke="#3c617e" strokeWidth="1.5"/>
+      <g fill="#78c9fa" fontSize="13" fontWeight="750" letterSpacing="1"><text x="13" y="19">IAS / KT</text><text x="458" y="19">ALT / FT</text><text x="557" y="19">V/S</text></g>
+      {selectedY !== null && <text x="541" y="38" textAnchor="end" fill="#71e4ff" fontSize="8" fontWeight="800">SEL {Math.round(selectedAltitude!)}</text>}
       <g clipPath={`url(#${id}-attitude)`}>
         {attitude && <g transform={transform}>
           <rect x="-900" y="-900" width="1800" height="900" fill="#137ebf"/>
           <rect x="-900" y="0" width="1800" height="900" fill="#91643e"/>
           <path d="M-900 0H900" stroke="#f9f5e8" strokeWidth="2.4"/>
-          {[-40,-30,-20,-10,10,20,30,40].map(deg => <g key={deg} transform={`translate(0 ${-deg * 3.8})`} stroke="#edf7ff" fill="#edf7ff" strokeWidth="1.6">
-            <path d={`M${deg % 20 === 0 ? -49 : -28} 0H-12 M12 0H${deg % 20 === 0 ? 49 : 28}`}/>
-            <text stroke="none" fontSize="12" x="-67" y="4" textAnchor="middle">{Math.abs(deg)}</text>
-            <text stroke="none" fontSize="12" x="67" y="4" textAnchor="middle">{Math.abs(deg)}</text>
-          </g>)}
+          {[-40,-30,-20,-10,-5,-2.5,2.5,5,10,20,30,40].map(deg => {
+            const major = Math.abs(deg) >= 10;
+            const length = major ? 51 : Math.abs(deg) === 5 ? 31 : 18;
+            return <g key={deg} transform={`translate(0 ${-deg * 4.0})`} stroke="#edf7ff" fill="#edf7ff" strokeWidth={major ? 1.9 : 1.3}>
+              <path d={`M${-length} 0H-12 M12 0H${length}`}/>
+              {major && <>
+                <text stroke="none" fontSize="12" x="-67" y="4" textAnchor="middle">{Math.abs(deg)}</text>
+                <text stroke="none" fontSize="12" x="67" y="4" textAnchor="middle">{Math.abs(deg)}</text>
+              </>}
+            </g>;
+          })}
         </g>}
       </g>
-      {attitude && <g stroke="#f7faff" fill="none" strokeWidth="2">
-        <path d="M174 181h57l12 12h58l12-12h57" stroke="#ffe273" strokeWidth="4" strokeLinecap="round"/>
-        <circle cx="272" cy="181" r="4" fill="#ffe273" stroke="none"/>
-        <path d="M196 79Q272 29 348 79" strokeWidth="1.7"/>
-        {[-60,-45,-30,-20,-10,0,10,20,30,45,60].map(deg => {
-          const radians = deg*Math.PI/180;
-          return <path key={deg} d={`M${272+96*Math.sin(radians)} ${100-96*Math.cos(radians)}l${6*Math.sin(radians)} ${-6*Math.cos(radians)}`}/>;
-        })}
-        <path d="M272 47l-8 18h16z" fill="#ffdf69" stroke="none"/>
+      {attitude && <g aria-label="Bank reference ticks" stroke="#f0f7ff" strokeWidth="1.4">
+        {[-30,-20,-10,0,10,20,30].map(value => <path key={value}
+          d={`M${272+value*2.5} 32v${value % 30 === 0 ? 9 : 5}`} />)}
+      </g>}
+      {attitude && <g stroke="#ffe273" fill="none" strokeWidth="3.6">
+        <path d="M169 176h59l12 11h64l12-11h59" strokeLinecap="round"/>
+        <circle cx="272" cy="176" r="3.5" fill="#ffe273" stroke="none"/>
       </g>}
       {!attitude && <g><rect x="136" y="128" width="272" height="92" rx="3" fill="#061321" fillOpacity=".94" stroke="#537693"/>
         <text x="272" y="161" fill="#ffd592" fontWeight="800" fontSize="16" textAnchor="middle">NO FLIGHT DATA</text>
@@ -65,6 +94,12 @@ export function B787PrimaryFlightDisplay({ telemetry, live }: Props) {
         <text x="272" y="205" fill="#627f98" fontSize="10" textAnchor="middle">Aircraft values are not simulated</text></g>}
       <rect x="4" y="43" width="92" height="264" fill="#172a3c" stroke="#446077"/>
       <g clipPath={`url(#${id}-speed)`}>
+        {speedBands && speedBand(speedBands.vs, speedBands.vno, '#39c48a', 8, 5)}
+        {speedBands && speedBand(speedBands.vno, speedBands.vne, '#f1bb5c', 8, 5)}
+        {speedBands && speedBands.vso !== null && speedBand(0, speedBands.vso, '#ef6675', 8, 5)}
+        {speedBands && speedBands.vs !== null && speedBand(0, speedBands.vs, '#ef6675', 8, 5)}
+        {speedBands && speedBands.vne !== null && speedBands.vne > 0 && speedBand(speedBands.vne, 1000, '#ec475f', 8, 5)}
+        {speedBands && speedBand(speedBands.vso, speedBands.vfe, '#e9f5fa', 16, 3)}
         {tapeMarks(ias, live, 20, 181, 2).map(({tick,y}) => <g key={tick} fill="#e5f4ff" fontSize="15">
           <path d={`M${tick%40===0?79:87} ${y}H95`} stroke="#9cbad0" strokeWidth="1.1"/>
           {tick%40===0 && <text x="67" y={y+5} textAnchor="end">{tick}</text>}
@@ -85,13 +120,27 @@ export function B787PrimaryFlightDisplay({ telemetry, live }: Props) {
       {vsi !== null && Number.isFinite(vsi) && <path d={`M548 ${181-Math.max(-2200,Math.min(2200,vsi))/18}h21`} stroke="#4ceaad" strokeWidth="3"/>}
       <rect x="547" y="163" width="89" height="36" fill="#02080e" stroke="#edf8ff"/>
       <text x="591" y="187" textAnchor="middle" fontSize="19" fill="#fff" fontWeight="750">{fmt(vsi,live)}</text>
-      <rect x="0" y="310" width="640" height="55" fill="#081827"/>
-      <text x="15" y="326" fontSize="11" fill="#64c5f6">GS</text><text x="39" y="326" fontSize="13" fill="#e4f5ff">{fmt(telemetry.groundSpeedKnots,live)}</text>
-      <text x="125" y="326" fontSize="11" fill="#64c5f6">ROLL</text><text x="166" y="326" fontSize="13" fill="#e4f5ff">{fmt(attitude?.roll ?? null,Boolean(attitude),1)}°</text>
-      <text x="243" y="326" fontSize="11" fill="#64c5f6">PITCH</text><text x="291" y="326" fontSize="13" fill="#e4f5ff">{fmt(attitude?.pitch ?? null,Boolean(attitude),1)}°</text>
-      <text x="406" y="326" fontSize="11" fill="#64c5f6">HDG</text><text x="440" y="326" fontSize="15" fill="#fff">{heading === null ? '---' : `${Math.round(((heading % 360)+360)%360).toString().padStart(3,'0')}°`}</text>
-      <text x="560" y="326" fontSize="11" fill="#64c5f6">MACH</text><text x="560" y="349" fontSize="15" fill="#fff">{fmt(telemetry.machNumber,live,2)}</text>
-      <path d="M0 335H548" stroke="#254760"/><text x="14" y="352" fill="#779db9" fontSize="11">X-PLANE AIRCRAFT DATA · NOT PHONE TILT</text>
+      <rect x="0" y="320" width="640" height="45" fill="#071723"/>
+      <rect x="0" y="320" width="101" height="45" fill="#092032"/>
+      <text x="9" y="333" fill="#70cef7" fontSize="9">GS / KT</text>
+      <text x="10" y="355" fill="#e6faff" fontSize="16" fontWeight="750">{fmt(telemetry.groundSpeedKnots,live)}</text>
+      <rect x="445" y="320" width="195" height="45" fill="#092032"/>
+      <text x="455" y="334" fill="#70cef7" fontSize="9">BANK</text>
+      <text x="455" y="353" fill="#e6faff" fontSize="13">{fmt(attitude?.roll ?? null,Boolean(attitude),1)}°</text>
+      <text x="521" y="334" fill="#70cef7" fontSize="9">PITCH</text>
+      <text x="521" y="353" fill="#e6faff" fontSize="13">{fmt(attitude?.pitch ?? null,Boolean(attitude),1)}°</text>
+      <text x="579" y="334" fill="#70cef7" fontSize="9">M</text>
+      <text x="579" y="353" fill="#e6faff" fontSize="13">{fmt(telemetry.machNumber,live,2)}</text>
+      <g>
+        <rect x="101" y="320" width="344" height="45" fill="#0a192a"/>
+        {compassTicks.map(({angle,x,major}) => x>107 && x<439 && <g key={angle}>
+          <path d={`M${x} 321v${major?9:5}`} stroke="#8ed2f0" strokeWidth={major?1.5:1}/>
+          {major && <text x={x} y="347" textAnchor="middle" fill="#c6e9fa" fontSize="11" fontWeight="700">{angle === 0 ? 'N' : angle === 90 ? 'E' : angle === 180 ? 'S' : angle === 270 ? 'W' : String(angle/10).padStart(2,'0')}</text>}
+        </g>)}
+        <path d="M272 322l-6 10h12z" fill="#e8d978"/>
+        <rect x="237" y="345" rx="3" width="70" height="18" fill="#06101d" stroke="#597c98"/>
+        <text x="272" y="359" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800">{headingNormalized === null ? '---' : Math.round(headingNormalized).toString().padStart(3,'0')}°</text>
+      </g>
     </svg>
   </section>;
 }

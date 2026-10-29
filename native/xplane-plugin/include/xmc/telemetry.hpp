@@ -16,13 +16,19 @@ private:
         int array_index;
         XPLMDataRef reference = nullptr;
     };
-    static constexpr std::size_t field_count = 46;
+    static constexpr std::size_t field_count = 55;
     XPLMDataRef aircraft_icao_ = nullptr;
     std::array<Field, field_count> fields_{{
         {"rollDegrees", "sim/flightmodel/position/phi", 1, -1},
         {"pitchDegrees", "sim/flightmodel/position/theta", 1, -1},
         {"headingDegrees", "sim/flightmodel/position/psi", 1, -1},
         {"indicatedAirspeedKnots", "sim/flightmodel/position/indicated_airspeed", 1, -1},
+        {"speedVsoKnots", "sim/aircraft/view/acf_Vso", 1, -1},
+        {"speedVsKnots", "sim/aircraft/view/acf_Vs", 1, -1},
+        {"speedVfeKnots", "sim/aircraft/view/acf_Vfe", 1, -1},
+        {"speedVnoKnots", "sim/aircraft/view/acf_Vno", 1, -1},
+        {"speedVneKnots", "sim/aircraft/view/acf_Vne", 1, -1},
+        {"selectedAltitudeFeet", "sim/cockpit2/autopilot/altitude_dial_ft", 1, -1},
         {"groundSpeedKnots", "sim/flightmodel/position/groundspeed", 1.943844492, -1},
         {"altitudeFeet", "sim/flightmodel/position/elevation", 3.280839895, -1},
         {"verticalSpeedFpm", "sim/flightmodel/position/vh_ind_fpm", 1, -1},
@@ -46,6 +52,9 @@ private:
         {"speedbrakeRatio", "sim/cockpit2/controls/speedbrake_ratio", 1, -1},
         {"elevatorTrimRatio", "sim/cockpit2/controls/elevator_trim", 1, -1},
         {"gearHandleDown", "sim/cockpit2/controls/gear_handle_down", 1, -1},
+        {"gearDeploy0Ratio", "sim/flightmodel2/gear/deploy_ratio", 1, 0},
+        {"gearDeploy1Ratio", "sim/flightmodel2/gear/deploy_ratio", 1, 1},
+        {"gearDeploy2Ratio", "sim/flightmodel2/gear/deploy_ratio", 1, 2},
         {"autopilotServosOn", "sim/cockpit2/autopilot/servos_on", 1, -1},
         {"n1LeftPercent", "sim/cockpit2/engine/indicators/N1_percent", 1, 0},
         {"n1RightPercent", "sim/cockpit2/engine/indicators/N1_percent", 1, 1},

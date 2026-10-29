@@ -7,6 +7,11 @@ export function clampFraction(value: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
 }
 
+/** Maps a continuous pointer movement to lever travel; no reverse re-anchoring. */
+export function travelFromPointer(startPosition: number, deltaY: number, height: number): number {
+  return clampFraction(startPosition + deltaY / Math.max(1, height));
+}
+
 export function throttleAtTravel(fraction: number): { forward: number; reverse: number } {
   const position = clampFraction(fraction);
   if (position <= IDLE_TRAVEL_FRACTION) {

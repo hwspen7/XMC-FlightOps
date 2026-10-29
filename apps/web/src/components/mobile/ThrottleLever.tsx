@@ -3,7 +3,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent a
 import type { FlightTelemetry } from '@xplane/shared';
 import {
   clampFraction, fractionForForward, fractionForReverse, IDLE_TRAVEL_FRACTION,
-  reverseDetentPermitted, throttleAtTravel,
+  reverseDetentPermitted, throttleAtTravel, travelFromPointer,
 } from './throttleLeverLogic';
 import { REVERSE_IDLE_REFERENCE_FRACTION, REVERSE_IDLE_REFERENCE_PERCENT, THROTTLE_SCALE_MARKS } from './throttleScale';
 import { formatN1Readout } from './throttleReadout';
@@ -21,7 +21,6 @@ interface DragState {
   startY: number;
   startPosition: number;
   idleSince: number | null;
-  reverseOriginY: number | null;
 }
 
 /**
@@ -39,6 +38,7 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
   const reverseRef = useRef(0);
   const forwardSendRef = useRef({ at: 0, value: -1 });
   const reverseSendRef = useRef({ at: 0, value: -1 });
+  const maxReverseLatched = useRef(false);
 
   const actual = live ? telemetry.throttleRatio : null;
   const onGround = live && telemetry.onGround === 1;
@@ -88,12 +88,20 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
     drag.current = null;
     setDragging(false);
     setDetentBlocked(false);
+    maxReverseLatched.current = false;
     if (reverseRef.current > 0) {
       releaseReverse();
       // Reverse returns to idle. Never leave an unintended forward command.
       sendThrottle(0);
     } else if (wasDragging) {
-      const forward = throttleAtTravel(positionRef.current).forward;
+      // An unapproved reverse gesture must end at IDLE, not leave a phantom
+      // reverse position on the phone.
+      const heldInReverseZone = positionRef.current > IDLE_TRAVEL_FRACTION;
+      if (heldInReverseZone) {
+        positionRef.current = IDLE_TRAVEL_FRACTION;
+        setPosition(IDLE_TRAVEL_FRACTION);
+      }
+      const forward = heldInReverseZone ? 0 : throttleAtTravel(positionRef.current).forward;
       sendThrottle(forward / 100);
       forwardSendRef.current = { at: performance.now(), value: forward };
     }
@@ -140,7 +148,6 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
       startY: event.clientY,
       startPosition: positionRef.current,
       idleSince: positionRef.current >= IDLE_TRAVEL_FRACTION ? performance.now() : null,
-      reverseOriginY: null,
     };
     setDragging(true);
   };
@@ -150,10 +157,10 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
     if (!gesture || event.pointerId !== gesture.pointerId || !rail.current) return;
     event.preventDefault();
     const travelHeight = Math.max(1, rail.current.getBoundingClientRect().height);
-    const proposed = clampFraction(gesture.startPosition + (event.clientY - gesture.startY) / travelHeight);
+    const proposed = travelFromPointer(gesture.startPosition, event.clientY - gesture.startY, travelHeight);
     if (proposed <= IDLE_TRAVEL_FRACTION) {
+      maxReverseLatched.current = false;
       gesture.idleSince = proposed === IDLE_TRAVEL_FRACTION ? gesture.idleSince ?? performance.now() : null;
-      gesture.reverseOriginY = null;
       setDetentBlocked(false);
       if (reverseRef.current > 0) reverseCommand(0, true);
       updatePosition(proposed);
@@ -161,32 +168,35 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
       return;
     }
 
-    // Stop at IDLE rather than jumping directly into reverse when pulling down.
+    // Keep the handle visually attached to the finger through IDLE. This is
+    // NOT a reverse command: X-Plane ground/idle/dwell interlocks still gate it.
+    // Never animate beyond idle when the airplane is airborne.
+    if (!onGround) {
+      updatePosition(IDLE_TRAVEL_FRACTION);
+      setDetentBlocked(true);
+      forwardCommand(0);
+      return;
+    }
     if (gesture.idleSince === null) gesture.idleSince = performance.now();
-    // The server rate-limits throttle updates. Retry idle if a prior zero
-    // command was throttled or has not yet been confirmed by telemetry.
-    if (reverseRef.current === 0 &&
-        (forwardSendRef.current.value !== 0 ||
-         (actual !== null && actual > 0.06 && performance.now() - forwardSendRef.current.at >= 110))) {
+    updatePosition(proposed);
+    // Repeat IDLE requests only when necessary; do not reset drag origin.
+    if (reverseRef.current === 0 && (forwardSendRef.current.value !== 0 ||
+        (actual !== null && actual > 0.06 && performance.now() - forwardSendRef.current.at >= 110))) {
       forwardCommand(0, true);
     }
     if (!reverseDetentPermitted(usable, onGround, autothrottle, actual, performance.now() - gesture.idleSince)) {
       if (reverseRef.current > 0) reverseCommand(0, true);
-      gesture.reverseOriginY = null;
-      updatePosition(IDLE_TRAVEL_FRACTION);
       setDetentBlocked(true);
       return;
     }
     setDetentBlocked(false);
-    if (gesture.reverseOriginY === null) {
-      gesture.reverseOriginY = gesture.startPosition >= IDLE_TRAVEL_FRACTION
-        ? gesture.startY : event.clientY;
-    }
-    const reverseTravel = Math.max(0, event.clientY - gesture.reverseOriginY) / travelHeight;
-    const reversePosition = clampFraction(IDLE_TRAVEL_FRACTION + reverseTravel);
-    updatePosition(reversePosition);
-    const { reverse } = throttleAtTravel(reversePosition);
-    if (reverse !== reverseRef.current) reverseCommand(reverse);
+    // Stable MAX REV endpoint: a narrow snap-and-release hysteresis prevents
+    // oscillation between 98/99/100 on iPhone pointer samples at the rail end.
+    if (proposed >= 0.978) maxReverseLatched.current = true;
+    else if (proposed <= 0.955) maxReverseLatched.current = false;
+    const { reverse } = throttleAtTravel(proposed);
+    const commandReverse = maxReverseLatched.current ? 100 : reverse;
+    if (commandReverse !== reverseRef.current) reverseCommand(commandReverse);
   };
 
   const onPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -205,11 +215,12 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
     forwardCommand(next, true);
   };
 
-  const dynamicLabel = values.reverse >= 99 ? 'MAX REV' : values.reverse > 0 ? `REV ${values.reverse}%`
+  const shownReverse = !detentBlocked && position >= .955 && maxReverseLatched.current ? 100 : values.reverse;
+  const dynamicLabel = detentBlocked ? 'REV WAIT' : shownReverse >= 100 ? 'MAX REV' : shownReverse > 0 ? `REV ${shownReverse}%`
     : values.forward === 0 ? 'IDLE' : `${values.forward}%`;
   const n1Readout = live ? formatN1Readout(telemetry.n1LeftPercent, telemetry.n1RightPercent) : '---';
   const commandReadout = usable
-    ? (values.reverse > 0 ? `REV ${values.reverse}%` : `${values.forward}%`) : '---';
+    ? (detentBlocked ? 'REV WAIT' : shownReverse >= 100 ? 'REV 100%' : values.reverse > 0 ? `REV ${values.reverse}%` : `${values.forward}%`) : '---';
 
   return <section className="fd-throttle fd-tile" aria-label="Single throttle lever with idle and reverse detent">
     <div className="fd-throttle-value" aria-label="Throttle command and actual X-Plane engine N1 readback"
@@ -249,7 +260,7 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
             style={{ top: `${REVERSE_IDLE_REFERENCE_FRACTION * 100}%` }}
             aria-hidden="true" />
           <div className="fd-lever-stage fd-lever-stage-max-reverse" aria-hidden="true" />
-          <div className="fd-lever-handle" style={{ top: `${position * 100}%` } as CSSProperties}>
+          <div className={`fd-lever-handle ${shownReverse >= 100 ? 'fd-lever-max-reverse' : ''}`} style={{ top: `${position * 100}%` } as CSSProperties}>
             <span className="fd-lever-grip"/>
             <strong>{dynamicLabel}</strong>
           </div>
@@ -259,7 +270,7 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
     <div className={`fd-throttle-hint ${detentBlocked ? 'fd-throttle-hint-locked' : ''}`}>
       {autothrottle ? 'AUTOTHROTTLE' : !active ? 'MONITOR ONLY'
         : !onGround ? 'REVERSE LOCKED IN AIR'
-        : detentBlocked ? reverseReady ? 'HOLD IDLE, PULL DOWN' : 'WAIT FOR IDLE'
+        : detentBlocked ? 'ARMING REVERSE · WAIT FOR IDLE' 
         : values.reverse >= 99 ? 'MAX REV COMMAND'
         : values.reverse > 0 && values.reverse <= REVERSE_IDLE_REFERENCE_PERCENT ? 'REV IDLE RANGE'
         : values.reverse > 0 ? `REVERSING ${values.reverse}%`

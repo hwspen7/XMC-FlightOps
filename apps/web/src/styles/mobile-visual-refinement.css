@@ -1,0 +1,45 @@
+/* 2026-10-29 control refinements; additive to the existing flight-deck and mobile-controls CSS. */
+@media (orientation:landscape) {
+  html.mobile-flight-locked .mobile-cockpit.fd-layout {
+    grid-template-rows: auto minmax(0,1fr) auto;
+    row-gap:8px;
+  }
+  .fd-layout .fd-main {padding-top:7px;box-sizing:border-box;}
+  .fd-layout .fd-throttle {padding-top:1px;padding-bottom:2px;}
+  .fd-layout .fd-throttle .fd-throttle-value {flex:0 0 auto;position:relative;z-index:3;margin-bottom:5px;}
+  .fd-layout .fd-throttle .fd-throttle-flex {min-height:0;flex:1;padding:0;}
+  /* 12px of clearance for the oversized top handle; the rail fills the remaining height. */
+  .fd-layout .fd-lever-rail {top:23px;bottom:10px;}
+  .fd-layout .fd-lever-scale-inner {top:23px;bottom:10px;}
+  .fd-layout .fd-lever-handle {height:36px;will-change:top;}
+  .fd-layout .fd-throttle-hint{min-height:10px;}
+  .fd-layout .fd-lever-touch {overflow:visible;}
+  .fd-layout .fd-flap-foot {padding:3px 1px;}
+  .fd-layout .fd-flap-foot strong {font-size:10px;}
+  .fd-layout .fd-flap-foot small {font-size:7px;letter-spacing:0;}
+  .fd-layout .fd-flap-detent.is-selected {color:#64d8ff;}
+  .fd-layout .fd-flap-rail {padding-top:8px;padding-bottom:8px;}
+  .fd-layout .fd-flap-handle{box-shadow:0 0 9px #35b6ff99;}
+  /* Gear indication: individual outlined landing assemblies, not three colored squares. */
+  .fd-layout .fd-gear-panel {gap:2px;padding:5px 7px;}
+  .fd-layout .fd-gear-assembly {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:center;flex:1;min-height:0;}
+  .fd-layout .fd-gear-leg {display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;border:1px solid #314b61;border-radius:5px;background:#061523;min-height:0;padding:1px;color:#516979;}
+  .fd-layout .fd-gear-leg-name{font-size:8px;line-height:1;color:#88a3b5;letter-spacing:1px;}
+  .fd-layout .fd-gear-leg svg{width:100%;max-width:29px;height:27px;display:block;}
+  .fd-layout .fd-gear-leg[data-lamp='green'] {color:#43e7a4;border-color:#2b956f;background:#0c2c29;}
+  .fd-layout .fd-gear-leg[data-lamp='red'] {color:#ff6572;border-color:#c64a5b;background:#371b2c;}
+  .fd-layout .fd-gear-leg[data-lamp='unknown'] {color:#4c6070;border-color:#374a5a;}
+  .fd-layout .fd-gear-bottom{letter-spacing:.1px;font-size:7px;}
+}
+@media (max-height:420px) and (orientation:landscape){
+  .fd-layout .fd-main{padding-top:4px;}
+  .fd-layout .fd-lever-rail,.fd-layout .fd-lever-scale-inner{top:20px;bottom:8px;}
+  .fd-layout .fd-lever-handle{height:33px;}
+  .fd-layout .fd-gear-leg svg{height:19px;}
+  .fd-layout .fd-gear-assembly{gap:3px;}
+}
+@media(max-width:780px) and (orientation:landscape){
+  .fd-layout .fd-gear-leg-name{font-size:7px;}
+  .fd-layout .fd-gear-leg svg{height:19px;}
+  .fd-layout .fd-flap-foot small{font-size:6px;}
+}
