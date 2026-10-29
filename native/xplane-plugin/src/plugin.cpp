@@ -6,6 +6,7 @@
 #include "xmc/network.hpp"
 #include "xmc/protocol.hpp"
 #include "xmc/telemetry.hpp"
+#include "xmc/flight_analysis.hpp"
 #include "XPLMPlugin.h"
 #include "XPLMDataAccess.h"
 #include "XPLMProcessing.h"
@@ -22,6 +23,7 @@ xmc::ControlSurface control;
 xmc::NativeMetrics native_metrics;
 xmc::LatestControl latest_control;
 xmc::Telemetry telemetry;
+xmc::FlightAnalysis flight_analysis;
 xmc::PauseGuard pause_guard;
 bool running = false;
 bool resolved = false;
@@ -175,6 +177,7 @@ float flight_loop(float, float, int, void*) {
         packet += "|reverseActive=" + std::to_string(control.reverse_active() ? 1 : 0);
         packet += "|mouseYokeActive=" + std::to_string(mouse_yoke_ref ? XPLMGetDatai(mouse_yoke_ref) : 0);
         packet += "|mouseYokeHideAvailable=" + std::to_string(hide_mouse_yoke != nullptr);
+        packet += flight_analysis.process(packet, now).append_fields();
         native_metrics.append_telemetry(packet, now);
         udp_link.send(packet);
         last_telemetry = now;
@@ -208,6 +211,6 @@ PLUGIN_API void XPluginStop() {
     config.reset();
     running = false;
 }
-PLUGIN_API int XPluginEnable() { running = true; resolved = false; native_metrics = xmc::NativeMetrics{}; latest_control.discard(); return 1; }
+PLUGIN_API int XPluginEnable() { running = true; resolved = false; native_metrics = xmc::NativeMetrics{}; latest_control.discard(); flight_analysis.reset(); return 1; }
 PLUGIN_API void XPluginDisable() { running = false; control.release(); restore_mouse(); native_metrics.on_disarm(); latest_control.discard(); }
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID, int, void*) {}

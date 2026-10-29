@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createSocket, type Socket } from 'node:dgram';
-import type { AuxiliaryAction, FlightTelemetry, NativeArmError, NativeControlDiagnostics, SimulatorStatus } from '@xplane/shared';
+import type { AuxiliaryAction, FlightAdvisoryEvent, FlightTelemetry, NativeArmError, NativeControlDiagnostics, SimulatorStatus } from '@xplane/shared';
 import { settings } from '../configuration/settings';
 import { emptyTelemetry } from '../xplane/telemetry';
 import {
@@ -25,6 +25,9 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
   private feedbackMeasuredAt = 0;
   private lastAckSequence = -1;
   private lastPause: { simPaused: boolean; nativeInterrupted: boolean; pauseOwned: boolean } | null = null;
+  private previousAlertFlags: number | null = null;
+  private readonly advisoryEvents: FlightAdvisoryEvent[] = [];
+  private advisorySequence = 0;
 
   onModuleInit(): void {
     if (settings.transport !== 'native') return;
@@ -48,6 +51,18 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
         this.feedbackRoundTripMs = null;
         this.feedbackMeasuredAt = 0;
       }
+      const mask = decoded.values.nativeAlertFlags;
+      if (mask !== undefined && mask !== null && Number.isInteger(mask)) {
+        const changed = this.previousAlertFlags === null ? mask : this.previousAlertFlags ^ mask;
+        for (let i = 0; i < 11; ++i) {
+          if (changed & (1 << i)) {
+            this.advisoryEvents.unshift({ id: ++this.advisorySequence, at: now, flag: i,
+              event: mask & (1 << i) ? 'raised' : 'cleared' });
+          }
+        }
+        this.advisoryEvents.length = Math.min(this.advisoryEvents.length, 150);
+        this.previousAlertFlags = mask;
+      } else { this.previousAlertFlags = null; }
       this.latestFields = Object.keys(decoded.values).length;
       if (decoded.metrics) {
         const metrics = decoded.metrics;
@@ -96,6 +111,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
     return {
       reachable,
       transport: 'native',
+      advisoryEvents: this.advisoryEvents,
       nativeArmed: reachable ? this.armedReported : null,
       nativeArmError: reachable ? this.armErrorReported : null,
       simPaused: reachable ? this.lastPause?.simPaused ?? null : null,

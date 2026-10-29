@@ -26,6 +26,30 @@ export const TELEMETRY_DEFINITIONS: readonly TelemetryDefinition[] = [
   { index: 3170, key: 'grossWeightKg', path: 'sim/flightmodel/weight/m_total', factor: 1, frequency: 1 },
   { index: 3171, key: 'fuelWeightKg', path: 'sim/flightmodel/weight/m_fuel_total', factor: 1, frequency: 1 },
 
+  { index: 3200, key: 'engineRunningLeft', path: 'sim/flightmodel/engine/ENGN_running[0]', factor: 1, frequency: 5 },
+  { index: 3201, key: 'engineRunningRight', path: 'sim/flightmodel/engine/ENGN_running[1]', factor: 1, frequency: 5 },
+  { index: 3202, key: 'selectedHeadingDegrees', path: 'sim/cockpit2/autopilot/heading_dial_deg_mag_pilot', factor: 1, frequency: 2 },
+  { index: 3203, key: 'selectedVerticalSpeedFpm', path: 'sim/cockpit2/autopilot/vvi_dial_fpm', factor: 1, frequency: 2 },
+  { index: 3204, key: 'flightDirectorMode', path: 'sim/cockpit2/autopilot/flight_director_mode', factor: 1, frequency: 2 },
+  { index: 3205, key: 'autopilotHeadingMode', path: 'sim/cockpit2/autopilot/heading_status', factor: 1, frequency: 2 },
+  { index: 3206, key: 'autopilotAltitudeMode', path: 'sim/cockpit2/autopilot/altitude_hold_status', factor: 1, frequency: 2 },
+  { index: 3207, key: 'autopilotNavMode', path: 'sim/cockpit2/autopilot/nav_status', factor: 1, frequency: 2 },
+  { index: 3208, key: 'autopilotApproachMode', path: 'sim/cockpit2/autopilot/approach_status', factor: 1, frequency: 2 },
+  { index: 3209, key: 'navDeviationDots', path: 'sim/cockpit2/radios/indicators/nav1_hdef_dots_pilot', factor: 1, frequency: 2 },
+  { index: 3210, key: 'glideslopeDeviationDots', path: 'sim/cockpit2/radios/indicators/nav1_vdef_dots_pilot', factor: 1, frequency: 2 },
+  { index: 3211, key: 'electricalBusVolts', path: 'sim/cockpit2/electrical/bus_volts[0]', factor: 1, frequency: 2 },
+  { index: 3212, key: 'batteryVolts', path: 'sim/cockpit2/electrical/battery_voltage_indicated_volts[0]', factor: 1, frequency: 2 },
+  { index: 3213, key: 'generatorLeftOn', path: 'sim/cockpit2/electrical/generator_on[0]', factor: 1, frequency: 2 },
+  { index: 3214, key: 'generatorRightOn', path: 'sim/cockpit2/electrical/generator_on[1]', factor: 1, frequency: 2 },
+  { index: 3215, key: 'hydraulicPressure1Raw', path: 'sim/cockpit2/hydraulics/indicators/hydraulic_pressure_1', factor: 1, frequency: 2 },
+  { index: 3216, key: 'hydraulicPressure2Raw', path: 'sim/cockpit2/hydraulics/indicators/hydraulic_pressure_2', factor: 1, frequency: 2 },
+  { index: 3217, key: 'hydraulicFluid1Ratio', path: 'sim/cockpit2/hydraulics/indicators/hydraulic_fluid_ratio_1', factor: 1, frequency: 2 },
+  { index: 3218, key: 'cabinAltitudeFeet', path: 'sim/cockpit2/pressurization/indicators/cabin_altitude_ft', factor: 1, frequency: 2 },
+  { index: 3219, key: 'cabinDifferentialPsi', path: 'sim/cockpit2/pressurization/indicators/pressure_diffential_psi', factor: 1, frequency: 2 },
+  { index: 3220, key: 'cabinVerticalSpeedFpm', path: 'sim/cockpit2/pressurization/indicators/cabin_vvi_fpm', factor: 1, frequency: 2 },
+  { index: 3221, key: 'pitotHeatOn', path: 'sim/cockpit2/ice/ice_pitot_heat_on_pilot', factor: 1, frequency: 2 },
+  { index: 3222, key: 'wingAntiIceOn', path: 'sim/cockpit2/ice/ice_surface_hot_bleed_air_on', factor: 1, frequency: 2 },
+  { index: 3223, key: 'wingIceRatio', path: 'sim/flightmodel/failures/frm_ice', factor: 1, frequency: 2 },
   { index: 3101, key: 'rollDegrees', path: 'sim/flightmodel/position/phi', factor: 1, frequency: 12 },
   { index: 3102, key: 'pitchDegrees', path: 'sim/flightmodel/position/theta', factor: 1, frequency: 12 },
   { index: 3103, key: 'headingDegrees', path: 'sim/flightmodel/position/psi', factor: 1, frequency: 8 },
@@ -88,7 +112,7 @@ const byIndex = new Map(TELEMETRY_DEFINITIONS.map((definition) => [definition.in
 export function emptyTelemetry(): FlightTelemetry {
   const telemetry: Record<string, number | string | null> = { receivedAt: null, aircraftIcao: null };
   for (const definition of TELEMETRY_DEFINITIONS) telemetry[definition.key] = null;
-  for (const key of ['reverseActive', 'mouseYokeActive', 'mouseYokeHideAvailable']) telemetry[key] = null;
+  for (const key of ['reverseActive', 'mouseYokeActive', 'mouseYokeHideAvailable', 'nativeRiskScore', 'nativeAlertFlags', 'nativeEventCount', 'nativeAnalysisSamples', 'nativeIasTrendKtMin', 'nativeAltitudeTrendFpm', 'nativeBankRmsDegrees']) telemetry[key] = null;
   return telemetry as unknown as FlightTelemetry;
 }
 

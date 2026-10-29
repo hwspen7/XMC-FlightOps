@@ -16,7 +16,7 @@ private:
         int array_index;
         XPLMDataRef reference = nullptr;
     };
-    static constexpr std::size_t field_count = 67;
+    static constexpr std::size_t field_count = 91;
     XPLMDataRef aircraft_icao_ = nullptr;
     std::array<Field, field_count> fields_{{
         {"normalLoadG", "sim/flightmodel2/misc/gforce_normal", 1, -1},
@@ -32,6 +32,30 @@ private:
         {"grossWeightKg", "sim/flightmodel/weight/m_total", 1, -1},
         {"fuelWeightKg", "sim/flightmodel/weight/m_fuel_total", 1, -1},
 
+        {"engineRunningLeft", "sim/flightmodel/engine/ENGN_running", 1, 0},
+        {"engineRunningRight", "sim/flightmodel/engine/ENGN_running", 1, 1},
+        {"selectedHeadingDegrees", "sim/cockpit2/autopilot/heading_dial_deg_mag_pilot", 1, -1},
+        {"selectedVerticalSpeedFpm", "sim/cockpit2/autopilot/vvi_dial_fpm", 1, -1},
+        {"flightDirectorMode", "sim/cockpit2/autopilot/flight_director_mode", 1, -1},
+        {"autopilotHeadingMode", "sim/cockpit2/autopilot/heading_status", 1, -1},
+        {"autopilotAltitudeMode", "sim/cockpit2/autopilot/altitude_hold_status", 1, -1},
+        {"autopilotNavMode", "sim/cockpit2/autopilot/nav_status", 1, -1},
+        {"autopilotApproachMode", "sim/cockpit2/autopilot/approach_status", 1, -1},
+        {"navDeviationDots", "sim/cockpit2/radios/indicators/nav1_hdef_dots_pilot", 1, -1},
+        {"glideslopeDeviationDots", "sim/cockpit2/radios/indicators/nav1_vdef_dots_pilot", 1, -1},
+        {"electricalBusVolts", "sim/cockpit2/electrical/bus_volts", 1, 0},
+        {"batteryVolts", "sim/cockpit2/electrical/battery_voltage_indicated_volts", 1, 0},
+        {"generatorLeftOn", "sim/cockpit2/electrical/generator_on", 1, 0},
+        {"generatorRightOn", "sim/cockpit2/electrical/generator_on", 1, 1},
+        {"hydraulicPressure1Raw", "sim/cockpit2/hydraulics/indicators/hydraulic_pressure_1", 1, -1},
+        {"hydraulicPressure2Raw", "sim/cockpit2/hydraulics/indicators/hydraulic_pressure_2", 1, -1},
+        {"hydraulicFluid1Ratio", "sim/cockpit2/hydraulics/indicators/hydraulic_fluid_ratio_1", 1, -1},
+        {"cabinAltitudeFeet", "sim/cockpit2/pressurization/indicators/cabin_altitude_ft", 1, -1},
+        {"cabinDifferentialPsi", "sim/cockpit2/pressurization/indicators/pressure_diffential_psi", 1, -1},
+        {"cabinVerticalSpeedFpm", "sim/cockpit2/pressurization/indicators/cabin_vvi_fpm", 1, -1},
+        {"pitotHeatOn", "sim/cockpit2/ice/ice_pitot_heat_on_pilot", 1, -1},
+        {"wingAntiIceOn", "sim/cockpit2/ice/ice_surface_hot_bleed_air_on", 1, -1},
+        {"wingIceRatio", "sim/flightmodel/failures/frm_ice", 1, -1},
         {"rollDegrees", "sim/flightmodel/position/phi", 1, -1},
         {"pitchDegrees", "sim/flightmodel/position/theta", 1, -1},
         {"headingDegrees", "sim/flightmodel/position/psi", 1, -1},

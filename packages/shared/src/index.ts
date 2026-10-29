@@ -89,6 +89,37 @@ export interface FlightTelemetry {
   oilPressureRightPsi: number | null;
   grossWeightKg: number | null;
   fuelWeightKg: number | null;
+  engineRunningLeft: number | null;
+  engineRunningRight: number | null;
+  selectedHeadingDegrees: number | null;
+  selectedVerticalSpeedFpm: number | null;
+  flightDirectorMode: number | null;
+  autopilotHeadingMode: number | null;
+  autopilotAltitudeMode: number | null;
+  autopilotNavMode: number | null;
+  autopilotApproachMode: number | null;
+  navDeviationDots: number | null;
+  glideslopeDeviationDots: number | null;
+  electricalBusVolts: number | null;
+  batteryVolts: number | null;
+  generatorLeftOn: number | null;
+  generatorRightOn: number | null;
+  hydraulicPressure1Raw: number | null;
+  hydraulicPressure2Raw: number | null;
+  hydraulicFluid1Ratio: number | null;
+  cabinAltitudeFeet: number | null;
+  cabinDifferentialPsi: number | null;
+  cabinVerticalSpeedFpm: number | null;
+  pitotHeatOn: number | null;
+  wingAntiIceOn: number | null;
+  wingIceRatio: number | null;
+  nativeRiskScore: number | null;
+  nativeAlertFlags: number | null;
+  nativeEventCount: number | null;
+  nativeAnalysisSamples: number | null;
+  nativeIasTrendKtMin: number | null;
+  nativeAltitudeTrendFpm: number | null;
+  nativeBankRmsDegrees: number | null;
   receivedAt: number | null;
 }
 
@@ -115,11 +146,19 @@ export interface NativeControlDiagnostics {
   feedbackRoundTripMs: number | null;
 }
 
+export interface FlightAdvisoryEvent {
+  id: number;
+  at: number;
+  flag: number;
+  event: 'raised' | 'cleared';
+}
+
 export interface SimulatorStatus {
   transport?: 'udp' | 'native';
   nativeArmed?: boolean | null;
   nativeArmError?: NativeArmError | null;
   nativeDiagnostics?: NativeControlDiagnostics | null;
+  advisoryEvents?: FlightAdvisoryEvent[];
   simPaused?: boolean | null;
   nativeInterrupted?: boolean | null;
   pauseOwned?: boolean | null;

@@ -22,7 +22,29 @@ export const EMPTY_FLIGHT_TELEMETRY: FlightTelemetry = {
   rudderRatio: null, rudderOverrideState: null, leftBrakeRatio: null, rightBrakeRatio: null,
   wheelBrakeRatio: null, reverseHandleRatio: null, reverseActive: null, onGround: null,
   autothrottleOn: null, mouseYokeActive: null, mouseYokeHideAvailable: null,
-  normalLoadG: null,   outsideAirTempC: null,   n2LeftPercent: null,   n2RightPercent: null,   egtLeftC: null,   egtRightC: null,   fuelFlowLeftKgS: null,   fuelFlowRightKgS: null,   oilPressureLeftPsi: null,   oilPressureRightPsi: null,   grossWeightKg: null,   fuelWeightKg: null,
+  normalLoadG: null, outsideAirTempC: null, n2LeftPercent: null, n2RightPercent: null,
+  egtLeftC: null, egtRightC: null, fuelFlowLeftKgS: null, fuelFlowRightKgS: null,
+  oilPressureLeftPsi: null, oilPressureRightPsi: null, grossWeightKg: null, fuelWeightKg: null,
+
+  // New native system readbacks and C++ diagnostic fields start as unavailable.
+  // A zero value would incorrectly imply a measured system state.
+  engineRunningLeft: null, engineRunningRight: null,
+  selectedHeadingDegrees: null, selectedVerticalSpeedFpm: null,
+  flightDirectorMode: null, autopilotHeadingMode: null,
+  autopilotAltitudeMode: null, autopilotNavMode: null,
+  autopilotApproachMode: null, navDeviationDots: null,
+  glideslopeDeviationDots: null, electricalBusVolts: null,
+  batteryVolts: null, generatorLeftOn: null,
+  generatorRightOn: null, hydraulicPressure1Raw: null,
+  hydraulicPressure2Raw: null, hydraulicFluid1Ratio: null,
+  cabinAltitudeFeet: null, cabinDifferentialPsi: null,
+  cabinVerticalSpeedFpm: null, pitotHeatOn: null,
+  wingAntiIceOn: null, wingIceRatio: null,
+  nativeRiskScore: null, nativeAlertFlags: null,
+  nativeEventCount: null, nativeAnalysisSamples: null,
+  nativeIasTrendKtMin: null, nativeAltitudeTrendFpm: null,
+  nativeBankRmsDegrees: null,
+
   receivedAt: null,
 };
 

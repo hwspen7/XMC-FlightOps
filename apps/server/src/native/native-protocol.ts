@@ -15,6 +15,7 @@ export type NativeMetricField = keyof typeof NATIVE_METRIC_FIELDS;
 export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[NativeMetricField], number>>;
 
 export const NATIVE_FIELDS = [
+  'engineRunningLeft', 'engineRunningRight', 'selectedHeadingDegrees', 'selectedVerticalSpeedFpm', 'flightDirectorMode', 'autopilotHeadingMode', 'autopilotAltitudeMode', 'autopilotNavMode', 'autopilotApproachMode', 'navDeviationDots', 'glideslopeDeviationDots', 'electricalBusVolts', 'batteryVolts', 'generatorLeftOn', 'generatorRightOn', 'hydraulicPressure1Raw', 'hydraulicPressure2Raw', 'hydraulicFluid1Ratio', 'cabinAltitudeFeet', 'cabinDifferentialPsi', 'cabinVerticalSpeedFpm', 'pitotHeatOn', 'wingAntiIceOn', 'wingIceRatio', 'nativeRiskScore', 'nativeAlertFlags', 'nativeEventCount', 'nativeAnalysisSamples', 'nativeIasTrendKtMin', 'nativeAltitudeTrendFpm', 'nativeBankRmsDegrees',
   'normalLoadG', 'outsideAirTempC', 'n2LeftPercent', 'n2RightPercent', 'egtLeftC', 'egtRightC', 'fuelFlowLeftKgS', 'fuelFlowRightKgS', 'oilPressureLeftPsi', 'oilPressureRightPsi', 'grossWeightKg', 'fuelWeightKg',
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
   'speedVsoKnots', 'speedVsKnots', 'speedVfeKnots', 'speedVnoKnots', 'speedVneKnots', 'selectedAltitudeFeet',
@@ -100,7 +101,7 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
       values.aircraftIcao = value.toUpperCase();
       continue;
     }
-    if (!KEYS.has(key) || value.length > 32 || value.trim() === '') return null;
+    if (!KEYS.has(key) || Object.prototype.hasOwnProperty.call(values, key) || value.length > 32 || value.trim() === '') return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
     if ((NORMALIZED_CONTROL_FIELDS.has(key) && (parsed < -1.01 || parsed > 1.01)) ||
@@ -108,6 +109,11 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
           key === 'reverseActive' || key === 'onGround' || key === 'autothrottleOn' || key === 'mouseYokeActive' ||
           key === 'mouseYokeHideAvailable') && parsed !== 0 && parsed !== 1)) return null;
     if (key === 'flapDetentCount' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 10)) return null;
+    if (key === 'nativeRiskScore' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 100)) return null;
+    if (key === 'nativeAlertFlags' && (!Number.isInteger(parsed) || parsed < 0 || parsed > 2047)) return null;
+    if ((key === 'nativeEventCount' || key === 'nativeAnalysisSamples') && (!Number.isInteger(parsed) || parsed < 0 || parsed > 1000000)) return null;
+    if (key === 'hydraulicFluid1Ratio' && (parsed < 0 || parsed > 1.01)) return null;
+    if ((key === 'engineRunningLeft' || key === 'engineRunningRight' || key === 'generatorLeftOn' || key === 'generatorRightOn') && parsed !== 0 && parsed !== 1) return null;
     (values as Record<string, string | number | null>)[key] = parsed;
   }
   if (fields[2] === 'armed=1' && armError !== null && armError !== 'none') return null;

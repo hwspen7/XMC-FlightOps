@@ -17,10 +17,15 @@ std::string Telemetry::packet(std::string_view token, bool armed) const {
         const int types = XPLMGetDataRefTypes(field.reference);
         double value = 0;
         if (field.array_index >= 0) {
-            if (!(types & xplmType_FloatArray)) continue;
-            float item = 0;
-            if (XPLMGetDatavf(field.reference, &item, field.array_index, 1) != 1) continue;
-            value = item;
+            if (types & xplmType_FloatArray) {
+                float item = 0;
+                if (XPLMGetDatavf(field.reference, &item, field.array_index, 1) != 1) continue;
+                value = item;
+            } else if (types & xplmType_IntArray) {
+                int item = 0;
+                if (XPLMGetDatavi(field.reference, &item, field.array_index, 1) != 1) continue;
+                value = item;
+            } else continue;
         } else if (types & xplmType_Double) value = XPLMGetDatad(field.reference);
         else if (types & xplmType_Float) value = XPLMGetDataf(field.reference);
         else if (types & xplmType_Int) value = XPLMGetDatai(field.reference);

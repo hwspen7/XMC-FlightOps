@@ -13,6 +13,8 @@ float raw_roll = 0.2f;
 float pilot_roll = 0.15f;
 float total_roll = 0.45f;
 int override_roll = 1;
+int generator_states[2] = {1, 0};
+float hydraulic_fluid = 0.08f;
 float speed_vs = 74.0f;
 float normal_g = 1.17f;
 float egt_pair[2] = {585.f, 598.f};
@@ -26,6 +28,8 @@ char aircraft_icao[] = "B738";
 XPLMDataRef XPLMFindDataRef(const char* name) {
     if (std::strcmp(name, "sim/aircraft/view/acf_Vs") == 0) return &speed_vs;
     if (std::strcmp(name, "sim/flightmodel2/misc/gforce_normal") == 0) return &normal_g;
+    if (std::strcmp(name, "sim/cockpit2/electrical/generator_on") == 0) return generator_states;
+    if (std::strcmp(name, "sim/cockpit2/hydraulics/indicators/hydraulic_fluid_ratio_1") == 0) return &hydraulic_fluid;
     if (std::strcmp(name, "sim/cockpit2/engine/indicators/EGT_deg_C") == 0) return egt_pair;
     if (std::strcmp(name, "sim/cockpit2/autopilot/altitude_dial_ft") == 0) return &selected_alt;
     if (std::strcmp(name, "sim/aircraft/controls/acf_flap_detents") == 0) return &flap_detents;
@@ -39,7 +43,7 @@ XPLMDataRef XPLMFindDataRef(const char* name) {
     if (std::strcmp(name, "sim/operation/override/override_joystick_roll") == 0) return &override_roll;
     return nullptr;
 }
-int XPLMGetDataRefTypes(XPLMDataRef ref) { return ref == &override_roll || ref == &flap_detents ? xplmType_Int : ref == aircraft_icao ? xplmType_Data : (ref == gear_ratios || ref == egt_pair) ? xplmType_FloatArray : xplmType_Float; }
+int XPLMGetDataRefTypes(XPLMDataRef ref) { return ref == &override_roll || ref == &flap_detents ? xplmType_Int : ref == generator_states ? xplmType_IntArray : ref == aircraft_icao ? xplmType_Data : (ref == gear_ratios || ref == egt_pair) ? xplmType_FloatArray : xplmType_Float; }
 int XPLMGetDatai(XPLMDataRef ref) { return *static_cast<int*>(ref); }
 float XPLMGetDataf(XPLMDataRef ref) { return *static_cast<float*>(ref); }
 double XPLMGetDatad(XPLMDataRef) { return 0.0; }
@@ -50,12 +54,16 @@ int XPLMGetDatavf(XPLMDataRef ref, float* out, int index, int count) {
     *out = ref == gear_ratios ? gear_ratios[index] : egt_pair[index];
     return 1;
 }
+int XPLMGetDatavi(XPLMDataRef ref, int* out, int index, int count) { if (ref != generator_states || !out || index < 0 || index >= 2 || count != 1) return 0; *out = generator_states[index]; return 1; }
 int XPLMGetDatab(XPLMDataRef ref, void* out, int offset, int max) { if (ref != aircraft_icao || offset != 0 || max < 5) return 0; std::memcpy(out, aircraft_icao, 5); return 5; }
 
 int main() {
     xmc::Telemetry telemetry;
     telemetry.resolve();
     const std::string snapshot = telemetry.packet("aaaaaaaaaaaaaaaa", true);
+    assert(snapshot.find("|generatorLeftOn=1") != std::string::npos);
+    assert(snapshot.find("|generatorRightOn=0") != std::string::npos);
+    assert(snapshot.find("|hydraulicFluid1Ratio=0.08") != std::string::npos);
     assert(snapshot.find("|normalLoadG=1.17") != std::string::npos);
     assert(snapshot.find("|egtLeftC=585") != std::string::npos);
     assert(snapshot.find("|egtRightC=598") != std::string::npos);
