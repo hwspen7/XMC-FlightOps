@@ -23,4 +23,22 @@ describe('aircraft-sourced flap indication', () => {
     expect(state?.handlePercent).toBe(25);
     expect(state?.actualPercent).toBe(5);
   });
+  it('uses Airbus handle-stage labels only with a matching configured count', () => {
+    const a320 = buildFlapDisplay('a320', 5, 0.5, 0.25);
+    expect(a320?.model).toBe('A320');
+    expect(a320?.label).toBe('2');
+    expect(a320?.actualPercent).toBe(25);
+    expect(a320?.authoritativeLabels).toBe(true);
+    expect(buildFlapDisplay('A320', 8, .5, .5)?.authoritativeLabels).toBe(false);
+  });
+  it('supports differing numbers of configured detents and missing telemetry', () => {
+    expect(buildFlapDisplay('C172', 4, 1, 1)?.label).toBe('30');
+    const custom = buildFlapDisplay('CUSTOM', 6, .5, .3);
+    expect(custom?.labels.length).toBe(7);
+    expect(custom?.label).toBe('POS 3');
+    expect(custom?.actualPercent).toBe(30);
+    expect(buildFlapDisplay('B738', null, .3, null)?.labels).toEqual([]);
+    expect(buildFlapDisplay(null, null, null, null)).toBeNull();
+  });
+
 });

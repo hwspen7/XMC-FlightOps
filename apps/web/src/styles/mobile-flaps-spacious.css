@@ -1,0 +1,128 @@
+/* Spacious, aircraft-aware flap detent selector.
+   Loaded after the existing flight-deck, controls, visual, tape and width styles.
+   The panel never invents aircraft detent names when configuration is unavailable. */
+@media (orientation:landscape) {
+  .fd-layout .fd-extra-controls {
+    grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+  }
+  .fd-layout .fd-flaps.fd-flaps-spacious {
+    grid-area:flaps;
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(21px,auto) minmax(27px,auto) minmax(0,1fr) minmax(36px,auto);
+    min-width:0;min-height:0;overflow:hidden;
+    padding:7px 7px 8px;
+    row-gap:5px;
+    align-content:stretch;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-header {
+    display:flex;justify-content:space-between;align-items:baseline;
+    gap:5px;min-width:0;padding:0 1px;
+    color:#daeffe;font-size:11px;line-height:1.1;letter-spacing:.5px;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-header strong {
+    font-weight:850;white-space:nowrap;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-header span {
+    font-size:9px;color:#72bce2;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;min-width:0;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-current {
+    min-width:0;font-size:clamp(16px,1.6vw,21px);
+    font-weight:850;line-height:1.05;white-space:nowrap;
+    text-align:center;color:#f0faff;font-variant-numeric:tabular-nums;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-body {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(33px,37%);
+    gap:8px;min-width:0;min-height:0;padding:0 0 1px;
+    align-items:stretch;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-rail {
+    display:flex;flex-direction:column;justify-content:space-between;
+    position:relative;min-width:0;min-height:0;padding:8px 1px 8px 18px;
+    isolation:isolate;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-rail::before {
+    content:'';position:absolute;left:7px;top:10px;bottom:10px;width:7px;
+    border-radius:9px;background:linear-gradient(90deg,#185578,#3989b4);
+    box-shadow:inset 0 0 3px #081b29;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-detent {
+    position:relative;display:flex;align-items:center;gap:5px;
+    min-height:0;line-height:1;white-space:nowrap;
+    padding:0 0 0 2px;font-size:clamp(8px,1vw,11px);
+    color:#9cb9cd;font-variant-numeric:tabular-nums;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-detent .fd-flap-mark {
+    width:11px;max-width:30%;height:1px;background:#94acbf;flex:none;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-detent.is-selected {
+    color:#5cdbff;font-weight:900;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-detent.is-selected .fd-flap-mark {
+    height:2px;background:#49ceff;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-handle {
+    position:absolute;left:0;width:17px;height:12px;
+    border-radius:3px;background:linear-gradient(#8ee7ff,#1398df);
+    border:1px solid #77d8ff;box-shadow:0 0 9px #21aeff88;
+    pointer-events:none;transform:translateY(50%);
+  }
+  .fd-layout .fd-flaps-spacious .fd-no-detents {
+    margin:auto 0;align-self:center;color:#a9c7da;
+    font-size:9px;white-space:nowrap;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows {
+    display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);
+    gap:9px;min-width:0;min-height:0;padding:1px 0;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows button {
+    width:100%;height:100%;min-height:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;border:1px solid #396a8b;
+    border-radius:7px;background:linear-gradient(#1b3d58,#153149);
+    color:#d3eeff;touch-action:manipulation;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows button:active:not(:disabled) {
+    background:#285a79;border-color:#63b8e2;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-arrow-symbol {
+    font-size:clamp(14px,1.65vw,21px);line-height:1;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows small {
+    font-size:9px;line-height:1;color:#b6d8eb;font-weight:750;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-foot {
+    min-height:36px;width:100%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;
+    padding:5px 4px;border-radius:6px;
+    background:linear-gradient(145deg,#204660,#16354d);
+    border:1px solid #38617e;min-width:0;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-foot strong {
+    color:#e6f7ff;font-size:clamp(11px,1.15vw,14px);
+    line-height:1.05;font-weight:850;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-foot small {
+    color:#a0d3ee;font-size:clamp(7px,.75vw,9px);
+    line-height:1.1;text-align:center;white-space:nowrap;
+  }
+}
+@media (max-height:420px) and (orientation:landscape) {
+  .fd-layout .fd-flaps.fd-flaps-spacious {
+    grid-template-rows:minmax(17px,auto) minmax(20px,auto) minmax(0,1fr) minmax(31px,auto);
+    padding:4px 5px 5px;row-gap:3px;
+  }
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-body {gap:5px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-rail {padding-top:5px;padding-bottom:5px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows {gap:6px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows small {font-size:8px;}
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-foot {min-height:31px;padding:3px 2px;gap:2px;}
+}
+@media (max-width:780px) and (orientation:landscape) {
+  .fd-layout .fd-extra-controls {grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);}
+  .fd-layout .fd-flaps-spacious .fd-flaps-spacious-body {grid-template-columns:minmax(0,1fr) minmax(31px,37%);gap:3px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-detent {gap:2px;font-size:8px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-detent .fd-flap-mark {width:7px;}
+  .fd-layout .fd-flaps-spacious .fd-flap-arrows button {gap:2px;}
+}

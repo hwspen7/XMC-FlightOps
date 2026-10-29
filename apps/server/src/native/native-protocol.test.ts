@@ -30,6 +30,11 @@ describe('native transport protocol', () => {
     const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|speedVsoKnots=45|speedVsKnots=52|speedVfeKnots=105|speedVnoKnots=140|speedVneKnots=170|selectedAltitudeFeet=6000`);
     expect(parseNativeTelemetry(packet, TOKEN)?.values).toMatchObject({ speedVsoKnots:45, speedVsKnots:52, speedVfeKnots:105, speedVnoKnots:140, speedVneKnots:170, selectedAltitudeFeet:6000 });
   });
+  it('accepts powerplant, environment and flight-load telemetry when present', () => {
+    const packet = Buffer.from(`XMT1|${TOKEN}|armed=1|normalLoadG=1.12|outsideAirTempC=-8.2|egtLeftC=650|fuelFlowLeftKgS=0.44`);
+    expect(parseNativeTelemetry(packet, TOKEN)?.values).toMatchObject({normalLoadG:1.12,outsideAirTempC:-8.2,egtLeftC:650,fuelFlowLeftKgS:0.44});
+    expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|egtLeftC=NaN`), TOKEN)).toBeNull();
+  });
   it('decodes authenticated flight data', () => {
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|rollDegrees=12.5|altitudeFeet=4800`), TOKEN))
       .toEqual({ armed: true, armError: null, values: { rollDegrees: 12.5, altitudeFeet: 4800 } });

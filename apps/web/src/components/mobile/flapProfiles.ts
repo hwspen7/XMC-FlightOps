@@ -19,6 +19,11 @@ const AIRCRAFT_DETENTS: Readonly<Record<string, readonly string[]>> = {
   B788: ['UP', '1', '5', '15', '17', '18', '20', '25', '30'],
   B789: ['UP', '1', '5', '15', '17', '18', '20', '25', '30'],
   B78X: ['UP', '1', '5', '15', '17', '18', '20', '25', '30'],
+  A319: ['UP', '1', '2', '3', 'FULL'],
+  A320: ['UP', '1', '2', '3', 'FULL'],
+  A321: ['UP', '1', '2', '3', 'FULL'],
+  A20N: ['UP', '1', '2', '3', 'FULL'],
+  A21N: ['UP', '1', '2', '3', 'FULL'],
   C172: ['UP', '10', '20', '30'],
 };
 
@@ -31,7 +36,7 @@ export function buildFlapDisplay(
   actualRatio: number | null,
 ): FlapDisplay | null {
   if (requestedRatio === null || !Number.isFinite(requestedRatio)) return null;
-  const icao = (aircraftIcao ?? '').toUpperCase();
+  const icao = (aircraftIcao ?? '').trim().toUpperCase();
   const known = AIRCRAFT_DETENTS[icao];
   const validCount = configuredDetents !== null && Number.isInteger(configuredDetents) && configuredDetents >= 1 && configuredDetents <= 10;
   // Some aircraft report the count including UP, others report the number of steps

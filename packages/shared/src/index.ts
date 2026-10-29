@@ -77,6 +77,18 @@ export interface FlightTelemetry {
   autothrottleOn: number | null;
   mouseYokeActive: number | null;
   mouseYokeHideAvailable: number | null;
+  normalLoadG: number | null;
+  outsideAirTempC: number | null;
+  n2LeftPercent: number | null;
+  n2RightPercent: number | null;
+  egtLeftC: number | null;
+  egtRightC: number | null;
+  fuelFlowLeftKgS: number | null;
+  fuelFlowRightKgS: number | null;
+  oilPressureLeftPsi: number | null;
+  oilPressureRightPsi: number | null;
+  grossWeightKg: number | null;
+  fuelWeightKg: number | null;
   receivedAt: number | null;
 }
 

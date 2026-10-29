@@ -15,6 +15,7 @@ export type NativeMetricField = keyof typeof NATIVE_METRIC_FIELDS;
 export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[NativeMetricField], number>>;
 
 export const NATIVE_FIELDS = [
+  'normalLoadG', 'outsideAirTempC', 'n2LeftPercent', 'n2RightPercent', 'egtLeftC', 'egtRightC', 'fuelFlowLeftKgS', 'fuelFlowRightKgS', 'oilPressureLeftPsi', 'oilPressureRightPsi', 'grossWeightKg', 'fuelWeightKg',
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
   'speedVsoKnots', 'speedVsKnots', 'speedVfeKnots', 'speedVnoKnots', 'speedVneKnots', 'selectedAltitudeFeet',
   'groundSpeedKnots', 'altitudeFeet', 'verticalSpeedFpm', 'magneticHeadingDegrees',

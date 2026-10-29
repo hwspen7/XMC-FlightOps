@@ -13,6 +13,19 @@ const KNOTS = 1.943844492;
 
 // Scalar and individually indexed array datarefs only. Unsupported datarefs remain null.
 export const TELEMETRY_DEFINITIONS: readonly TelemetryDefinition[] = [
+  { index: 3160, key: 'normalLoadG', path: 'sim/flightmodel2/misc/gforce_normal', factor: 1, frequency: 5 },
+  { index: 3161, key: 'outsideAirTempC', path: 'sim/cockpit2/temperature/outside_air_temp_degc', factor: 1, frequency: 2 },
+  { index: 3162, key: 'n2LeftPercent', path: 'sim/cockpit2/engine/indicators/N2_percent[0]', factor: 1, frequency: 5 },
+  { index: 3163, key: 'n2RightPercent', path: 'sim/cockpit2/engine/indicators/N2_percent[1]', factor: 1, frequency: 5 },
+  { index: 3164, key: 'egtLeftC', path: 'sim/cockpit2/engine/indicators/EGT_deg_C[0]', factor: 1, frequency: 3 },
+  { index: 3165, key: 'egtRightC', path: 'sim/cockpit2/engine/indicators/EGT_deg_C[1]', factor: 1, frequency: 3 },
+  { index: 3166, key: 'fuelFlowLeftKgS', path: 'sim/cockpit2/engine/indicators/fuel_flow_kg_sec[0]', factor: 1, frequency: 3 },
+  { index: 3167, key: 'fuelFlowRightKgS', path: 'sim/cockpit2/engine/indicators/fuel_flow_kg_sec[1]', factor: 1, frequency: 3 },
+  { index: 3168, key: 'oilPressureLeftPsi', path: 'sim/cockpit2/engine/indicators/oil_pressure_psi[0]', factor: 1, frequency: 2 },
+  { index: 3169, key: 'oilPressureRightPsi', path: 'sim/cockpit2/engine/indicators/oil_pressure_psi[1]', factor: 1, frequency: 2 },
+  { index: 3170, key: 'grossWeightKg', path: 'sim/flightmodel/weight/m_total', factor: 1, frequency: 1 },
+  { index: 3171, key: 'fuelWeightKg', path: 'sim/flightmodel/weight/m_fuel_total', factor: 1, frequency: 1 },
+
   { index: 3101, key: 'rollDegrees', path: 'sim/flightmodel/position/phi', factor: 1, frequency: 12 },
   { index: 3102, key: 'pitchDegrees', path: 'sim/flightmodel/position/theta', factor: 1, frequency: 12 },
   { index: 3103, key: 'headingDegrees', path: 'sim/flightmodel/position/psi', factor: 1, frequency: 8 },

@@ -16,9 +16,22 @@ private:
         int array_index;
         XPLMDataRef reference = nullptr;
     };
-    static constexpr std::size_t field_count = 55;
+    static constexpr std::size_t field_count = 67;
     XPLMDataRef aircraft_icao_ = nullptr;
     std::array<Field, field_count> fields_{{
+        {"normalLoadG", "sim/flightmodel2/misc/gforce_normal", 1, -1},
+        {"outsideAirTempC", "sim/cockpit2/temperature/outside_air_temp_degc", 1, -1},
+        {"n2LeftPercent", "sim/cockpit2/engine/indicators/N2_percent", 1, 0},
+        {"n2RightPercent", "sim/cockpit2/engine/indicators/N2_percent", 1, 1},
+        {"egtLeftC", "sim/cockpit2/engine/indicators/EGT_deg_C", 1, 0},
+        {"egtRightC", "sim/cockpit2/engine/indicators/EGT_deg_C", 1, 1},
+        {"fuelFlowLeftKgS", "sim/cockpit2/engine/indicators/fuel_flow_kg_sec", 1, 0},
+        {"fuelFlowRightKgS", "sim/cockpit2/engine/indicators/fuel_flow_kg_sec", 1, 1},
+        {"oilPressureLeftPsi", "sim/cockpit2/engine/indicators/oil_pressure_psi", 1, 0},
+        {"oilPressureRightPsi", "sim/cockpit2/engine/indicators/oil_pressure_psi", 1, 1},
+        {"grossWeightKg", "sim/flightmodel/weight/m_total", 1, -1},
+        {"fuelWeightKg", "sim/flightmodel/weight/m_fuel_total", 1, -1},
+
         {"rollDegrees", "sim/flightmodel/position/phi", 1, -1},
         {"pitchDegrees", "sim/flightmodel/position/theta", 1, -1},
         {"headingDegrees", "sim/flightmodel/position/psi", 1, -1},

@@ -22,6 +22,7 @@ export const EMPTY_FLIGHT_TELEMETRY: FlightTelemetry = {
   rudderRatio: null, rudderOverrideState: null, leftBrakeRatio: null, rightBrakeRatio: null,
   wheelBrakeRatio: null, reverseHandleRatio: null, reverseActive: null, onGround: null,
   autothrottleOn: null, mouseYokeActive: null, mouseYokeHideAvailable: null,
+  normalLoadG: null,   outsideAirTempC: null,   n2LeftPercent: null,   n2RightPercent: null,   egtLeftC: null,   egtRightC: null,   fuelFlowLeftKgS: null,   fuelFlowRightKgS: null,   oilPressureLeftPsi: null,   oilPressureRightPsi: null,   grossWeightKg: null,   fuelWeightKg: null,
   receivedAt: null,
 };
 

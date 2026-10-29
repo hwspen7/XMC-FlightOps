@@ -1,0 +1,79 @@
+/* Ground-turn directional buttons: line icons replace platform-dependent emoji. */
+/* This file intentionally overrides only the two ground-turn buttons. */
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 0.75vw, 8px);
+  min-width: 0;
+  min-height: 0;
+  padding: 3px clamp(5px, 0.9vw, 11px);
+  border: 1px solid #376b90;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #1a3a56 0%, #102a41 100%);
+  color: #cbe6f6;
+  box-shadow: inset 0 1px 0 #9acbfa13;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 110ms ease, background 110ms ease, box-shadow 110ms ease, transform 110ms ease;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-label {
+  flex: 0 1 auto;
+  color: #c5ddeb;
+  font-size: clamp(8px, 0.9vw, 10px);
+  font-weight: 850;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  border: 1px solid #638daa75;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 26%, #3c729559, #132d43 75%);
+  color: #c5e9ff;
+  box-shadow: inset 0 1px 0 #e5faff1c;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-button:active:not(:disabled) {
+  transform: translateY(1px);
+  border-color: #71c8fc;
+  background: linear-gradient(180deg, #285c7d, #184565);
+  box-shadow: inset 0 0 12px #66baff26, 0 0 9px #40bbff1c;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-button:active:not(:disabled) .fd-ground-turn-icon {
+  border-color: #91ddff;
+  color: #f4fdff;
+  background: #2c749b;
+}
+.fd-layout .fd-ground-turn-buttons .fd-ground-turn-button:disabled {
+  opacity: .38;
+  transform: none;
+  box-shadow: none;
+}
+@media (max-height: 380px) and (orientation: landscape) {
+  .fd-layout .fd-ground-turn-buttons .fd-ground-turn-icon {
+    width: 19px;
+    height: 19px;
+    flex-basis: 19px;
+  }
+  .fd-layout .fd-ground-turn-buttons .fd-ground-turn-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fd-layout .fd-ground-turn-buttons .fd-ground-turn-button { transition: none; }
+}
