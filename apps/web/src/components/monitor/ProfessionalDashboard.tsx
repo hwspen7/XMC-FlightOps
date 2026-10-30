@@ -1,9 +1,11 @@
+/* XMC_CONTROL_INSTRUMENT_RELIABILITY_20261029 */
 import { useMemo, useState, type PointerEvent, type ReactNode } from 'react';
 import type { FlightTelemetry, ServerStatus } from '@xplane/shared';
 import { useTelemetryHistory, type HistoryPoint } from '../../hooks/useTelemetryHistory';
 import { picture } from '../../telemetry/flightAnalytics';
 import { AviationChart } from './AviationChart';
 import { SpatialMonitor } from './SpatialMonitor';
+import { B787PrimaryFlightDisplay } from '../mobile/B787PrimaryFlightDisplay';
 import '../../styles/professional-dashboard.css';
 
 type TelemetryKey = Exclude<keyof HistoryPoint, 'at'>;
@@ -28,25 +30,10 @@ function Gauge({ label, value, max = 100, unit = '%', accent = C.green }: { labe
   return <div className="xpd-gauge"><div><span>{label}</span><strong>{read(value, 1)}<small> {unit}</small></strong></div><div className="xpd-gauge-track"><i style={{ width: `${pct}%`, background: accent }} /></div></div>;
 }
 function Horizon({ t, live }: { t: FlightTelemetry; live: boolean }) {
-  const roll = visibleValue(t.rollDegrees, live), pitch = visibleValue(t.pitchDegrees, live);
-  const bank = okay(roll) ? Math.max(-180, Math.min(180, roll)) : 0;
-  const shift = okay(pitch) ? Math.max(-55, Math.min(55, pitch)) * 3.2 : 0;
-  return <div className="xpd-pfd"><svg viewBox="0 0 400 255" role="img" aria-label="Simulator attitude, airspeed, altitude and heading instrument">
-    <defs><clipPath id="xpd-horizon-clip"><rect x="62" y="10" width="276" height="215" rx="8" /></clipPath></defs>
-    <rect x="62" y="10" width="276" height="215" rx="8" fill="#071c2d" stroke="#496a81" />
-    <g clipPath="url(#xpd-horizon-clip)"><g transform={`rotate(${-bank} 200 117)`}><g transform={`translate(0 ${shift})`}>
-      <rect x="-150" y="-380" width="700" height="497" fill="#1764a1" />
-      <rect x="-150" y="117" width="700" height="520" fill="#8b5635" />
-      <path d="M-150 117H550" stroke="#e9f6ff" strokeWidth="2" />
-      {[-30,-20,-10,10,20,30].map(n=><g key={n}><path d={`M${n % 20 === 0 ? 155 : 175} ${117 - n * 3.2}H${n % 20 === 0 ? 245 : 225}`} stroke="#eef7ff" strokeWidth="1.3"/><text x="145" y={121 - n*3.2} fontSize="10" fill="#fff" textAnchor="end">{Math.abs(n)}</text><text x="255" y={121-n*3.2} fontSize="10" fill="#fff">{Math.abs(n)}</text></g>)}
-    </g></g></g>
-    <path d="M143 123H188L200 132L212 123H257 M200 118V148" fill="none" stroke="#f5cd73" strokeWidth="3" />
-    <path d="M200 5l-9 14h18z" fill="#fff" />
-    <rect x="0" y="76" width="75" height="82" rx="5" fill="#061421" stroke="#5c92b6"/><text x="37" y="95" fill="#79a4c2" textAnchor="middle" fontSize="10">IAS / KT</text><text x="37" y="123" fill="#fff" textAnchor="middle" fontSize="24" fontWeight="800">{read(visibleValue(t.indicatedAirspeedKnots, live))}</text><text x="37" y="143" fill="#80aed0" textAnchor="middle" fontSize="10">TAS {read(visibleValue(t.trueAirspeedKnots, live))}</text>
-    <rect x="326" y="76" width="74" height="82" rx="5" fill="#061421" stroke="#5c92b6"/><text x="363" y="95" fill="#79a4c2" textAnchor="middle" fontSize="10">ALT / FT</text><text x="363" y="123" fill="#fff" textAnchor="middle" fontSize="20" fontWeight="800">{read(visibleValue(t.altitudeFeet, live))}</text><text x="363" y="143" fill="#80aed0" textAnchor="middle" fontSize="10">VS {read(visibleValue(t.verticalSpeedFpm, live))}</text>
-    <rect x="121" y="225" width="158" height="27" rx="5" fill="#0a1d2d" stroke="#31536c"/><text x="200" y="244" fontSize="17" fontWeight="700" fill="#d9f3ff" textAnchor="middle">HDG {read(visibleValue(t.headingDegrees, live))}°</text>
-    {!live && <g><rect x="95" y="91" width="210" height="48" rx="4" fill="#091925" fillOpacity=".92"/><text x="200" y="119" fill="#efbf7e" textAnchor="middle" fontWeight="700" fontSize="13">ATTITUDE DATA UNAVAILABLE</text></g>}
-  </svg></div>;
+  // Both screens use the same flight data and identical PFD rendering code.
+  return <div className="xpd-pfd xpd-pfd-mobile-clone">
+    <B787PrimaryFlightDisplay telemetry={t} live={live} />
+  </div>;
 }
 function Engine({ t, live }: { t: FlightTelemetry; live: boolean }) {
   return <div className="xpd-engine-grid"><div className="xpd-engine-labels"><span>ENGINE 1</span><span>ENGINE 2</span></div>

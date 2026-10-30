@@ -19,3 +19,99 @@
 @media(max-width:1450px){.xpd-status-strip{grid-template-columns:repeat(4,minmax(0,1fr))}.xpd-status-strip>*{border-bottom:1px solid #204057}.xpd-primary{grid-template-columns:repeat(12,minmax(0,1fr))}.xpd-pfd-panel,.xpd-track-panel{grid-column:span 4}.xpd-engines-panel{grid-column:span 4}.xpd-fuel-panel,.xpd-mobile-panel{grid-column:span 6}.xpd-system-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.xpd-charts{grid-template-columns:repeat(2,minmax(0,1fr))}.xpd-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:820px){.xpd-workspace-nav{flex-wrap:wrap;padding:9px}.xpd-workspace-brand{flex-basis:100%}.xpd-workspace-nav .xpd-live,.xpd-workspace-nav .xpd-not-live{margin-left:0}.xpd-primary{grid-template-columns:repeat(2,minmax(0,1fr))}.xpd-primary>.xpd-card{grid-column:span 1}.xpd-system-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.xpd-charts{grid-template-columns:repeat(2,minmax(0,1fr))}.xpd-bottom{grid-template-columns:1fr 1fr}.xpd-chart-heading>span,.xpd-section-bar>span{display:none}}
 @media(max-width:600px){.xpd-dashboard{padding:9px}.xpd-status-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.xpd-primary{grid-template-columns:1fr}.xpd-primary>.xpd-card{grid-column:1}.xpd-system-grid,.xpd-charts,.xpd-bottom{grid-template-columns:1fr}.xpd-workspace-nav button{padding:9px 7px;font-size:9px}.xpd-chart-heading{flex-wrap:wrap}.xpd-chart-heading>div{margin-left:auto}}
+
+/* XMC shared mobile PFD in desktop overview */
+.xpd-pfd-mobile-clone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 0;
+}
+.xpd-pfd-mobile-clone .xmc-pfd {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 640 / 365;
+}
+.xpd-pfd-mobile-clone .xmc-pfd svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+
+/* XMC PFD alignment / wide-card layout, shared mobile PFD in web monitor. */
+/* Preserve the 640:365 instrument geometry. Resize its card instead of distorting it. */
+.xpd-primary { grid-template-columns: repeat(12, minmax(0,1fr)); }
+.xpd-primary .xpd-pfd-panel { grid-column: span 6; }
+.xpd-primary .xpd-track-panel { grid-column: span 6; }
+.xpd-primary .xpd-engines-panel,
+.xpd-primary .xpd-fuel-panel,
+.xpd-primary .xpd-mobile-panel { grid-column: span 4; }
+.xpd-pfd-panel .xpd-pfd-mobile-clone {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+}
+.xpd-pfd-panel .xpd-pfd-mobile-clone .xmc-pfd {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 365;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+}
+.xpd-pfd-panel .xpd-pfd-mobile-clone .xmc-pfd svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 640 / 365;
+}
+@media (max-width: 900px) {
+  .xpd-primary .xpd-pfd-panel,
+  .xpd-primary .xpd-track-panel { grid-column: span 12; }
+  .xpd-primary .xpd-engines-panel,
+  .xpd-primary .xpd-fuel-panel,
+  .xpd-primary .xpd-mobile-panel { grid-column: span 4; }
+}
+@media (max-width: 600px) {
+  .xpd-primary .xpd-pfd-panel,
+  .xpd-primary .xpd-track-panel,
+  .xpd-primary .xpd-engines-panel,
+  .xpd-primary .xpd-fuel-panel,
+  .xpd-primary .xpd-mobile-panel { grid-column: 1 / -1; }
+}
+
+/* XMC map-height fix: let the FAA tile viewport occupy the whole dashboard card.
+ * The existing ResizeObserver computes tiles for the actual expanded viewport. */
+.xpd-primary > .xpd-track-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.xpd-primary > .xpd-track-panel > .xav-chart {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.xpd-primary > .xpd-track-panel .xav-mode-row,
+.xpd-primary > .xpd-track-panel .xav-readout {
+  flex: 0 0 auto;
+}
+.xpd-primary > .xpd-track-panel .xav-map {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 240px;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .xpd-primary > .xpd-track-panel .xav-map { min-height: 280px; }
+}

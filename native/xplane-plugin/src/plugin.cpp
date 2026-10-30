@@ -1,3 +1,4 @@
+/* XMC_CONTROL_INSTRUMENT_RELIABILITY_20261029 */
 #include "xmc/config.hpp"
 #include "xmc/control.hpp"
 #include "xmc/native_metrics.hpp"
@@ -32,6 +33,7 @@ XPLMCommandRef restore_mouse_yoke = nullptr;
 XPLMDataRef mouse_yoke_ref = nullptr;
 bool mouse_was_active = false;
 bool mouse_hidden_by_us = false;
+bool throttle_command_rejected = false;
 void restore_mouse() {
     if (mouse_hidden_by_us && restore_mouse_yoke && mouse_was_active) XPLMCommandOnce(restore_mouse_yoke);
     mouse_hidden_by_us = false;
@@ -132,6 +134,11 @@ float flight_loop(float, float, int, void*) {
             const auto started = xmc::NativeMetrics::Clock::now();
             const bool accepted = control.apply(*command);
             const auto finished = xmc::NativeMetrics::Clock::now();
+            if (command->operation == xmc::Operation::Throttle) {
+                if (!accepted && !throttle_command_rejected)
+                    XPLMDebugString("XPlane Motion Controller: throttle command rejected; check native ARM, throttle DataRef availability and writability.\n");
+                throttle_command_rejected = !accepted;
+            }
             if (accepted && command->operation == xmc::Operation::Arm && !previously_armed)
                 native_metrics.on_arm();
             if (accepted && command->operation == xmc::Operation::Arm && !previously_armed) maybe_hide_mouse();
@@ -159,7 +166,7 @@ float flight_loop(float, float, int, void*) {
     }
     if (!control.armed() && native_metrics.active()) native_metrics.on_disarm();
     const auto now = std::chrono::steady_clock::now();
-    if (now - last_telemetry >= std::chrono::milliseconds(100)) {
+    if (now - last_telemetry >= std::chrono::milliseconds(50)) {
         // Extend the authenticated telemetry snapshot with native ARM diagnostics.
         // The regular flight telemetry fields remain unchanged.
         std::string packet = telemetry.packet(config->token, control.armed());
@@ -211,6 +218,6 @@ PLUGIN_API void XPluginStop() {
     config.reset();
     running = false;
 }
-PLUGIN_API int XPluginEnable() { running = true; resolved = false; native_metrics = xmc::NativeMetrics{}; latest_control.discard(); flight_analysis.reset(); return 1; }
+PLUGIN_API int XPluginEnable() { running = true; resolved = false; native_metrics = xmc::NativeMetrics{}; latest_control.discard(); flight_analysis.reset(); throttle_command_rejected = false; return 1; }
 PLUGIN_API void XPluginDisable() { running = false; control.release(); restore_mouse(); native_metrics.on_disarm(); latest_control.discard(); }
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID, int, void*) {}

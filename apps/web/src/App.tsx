@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { MobileCockpit } from './views/MobileCockpit';
-import { DesktopMonitor } from './views/DesktopMonitor';
 import { useFlightController } from './hooks/useFlightController';
 import { useViewMode } from './hooks/useViewMode';
 import { OperationsSuite } from './components/monitor/OperationsSuite';
@@ -9,7 +8,7 @@ import './styles/systems-health.css';
 import './styles/monitor-layout-refinement.css';
 import './styles/professional-dashboard.css';
 
-type Workspace = 'overview' | 'expert' | 'detail';
+type Workspace = 'overview' | 'operations';
 
 function DesktopWorkspace({ flight, onMobile }: { flight: ReturnType<typeof useFlightController>; onMobile: () => void }) {
   const [page, setPage] = useState<Workspace>('overview');
@@ -17,15 +16,18 @@ function DesktopWorkspace({ flight, onMobile }: { flight: ReturnType<typeof useF
   return <div className="xpd-workspace">
     <nav className="xpd-workspace-nav" aria-label="Desktop flight monitoring sections">
       <div className="xpd-workspace-brand">✈ XPLANE MOTION CONTROLLER</div>
-      {([['overview', '01 · LIVE OVERVIEW'], ['expert', '02 · SYSTEMS / ANALYTICS / REPLAY'], ['detail', '03 · ALL TELEMETRY']] as const).map(([id, label]) =>
+      {([['overview', '01 · LIVE OVERVIEW'], ['operations', '02 · OPERATIONS']] as const).map(([id, label]) =>
         <button type="button" key={id} className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{label}</button>
       )}
       <span className={connected && serverStatus.simulator.telemetryFresh ? 'xpd-live' : 'xpd-not-live'}>{connected && serverStatus.simulator.telemetryFresh ? '● LIVE SIMULATOR FEED' : '○ DATA UNAVAILABLE'}</span>
     </nav>
-    {/* Keep the overview recorder and expert workspace mounted across tab changes. */}
-    <div hidden={page !== 'overview'} className="xpd-workspace-page"><ProfessionalDashboard status={serverStatus} connected={connected} onMobile={onMobile}/></div>
-    <div hidden={page !== 'expert'} className="xpd-workspace-page"><OperationsSuite status={serverStatus} connected={connected}/></div>
-    {page === 'detail' && <div className="xpd-workspace-page"><DesktopMonitor status={serverStatus} connected={connected} onMobile={onMobile}/></div>}
+    {/* Keep the live overview and operations recorder mounted across workspace switches. */}
+    <div hidden={page !== 'overview'} className="xpd-workspace-page">
+      <ProfessionalDashboard status={serverStatus} connected={connected} onMobile={onMobile}/>
+    </div>
+    <div hidden={page !== 'operations'} className="xpd-workspace-page">
+      <OperationsSuite status={serverStatus} connected={connected} onMobile={onMobile}/>
+    </div>
   </div>;
 }
 

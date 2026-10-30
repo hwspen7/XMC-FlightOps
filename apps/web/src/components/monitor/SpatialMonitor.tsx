@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import type { FlightTelemetry, ServerStatus } from '@xplane/shared';
 import type { HistoryPoint } from '../../hooks/useTelemetryHistory';
-import { aircraftToWorld, project3d, toLocalTrack, validPosition, type Vec3 } from '../../telemetry/spatialMath';
+import { aircraftToWorld, project3d, toLocalTrack, toTrackScene, validPosition, type Vec3 } from '../../telemetry/spatialMath';
 import '../../styles/spatial-monitor.css';
 
 const finite=(v:number|null|undefined):v is number=>typeof v==='number'&&Number.isFinite(v);
@@ -51,20 +51,20 @@ function AircraftView({t,live}:{t:FlightTelemetry;live:boolean}) {
     <div className="xsp-data"><span>BANK <b>{fmt(pose?.roll)}°</b></span><span>PITCH <b>{fmt(pose?.pitch)}°</b></span><span>HDG <b>{fmt(pose?.heading,0)}°</b></span></div>
   </Card>;
 }
-function TrackView({history,live}:{history:HistoryPoint[];live:boolean}) {
+function TrackView({history,live,aglFeet}:{history:HistoryPoint[];live:boolean;aglFeet:number|null}) {
   const [azimuth,setAzimuth]=useState(45);
   const observed=useMemo(()=>history.filter(p=>validPosition({latitude:p.latitude,longitude:p.longitude,altitudeFeet:p.altitude})).slice(-400),[history]);
   const track=useMemo(()=>toLocalTrack(observed.map(p=>({latitude:p.latitude!,longitude:p.longitude!,altitudeFeet:p.altitude!,at:p.at}))),[observed]);
-  const projected=track.map(p=>project3d({...p,z:p.z*2},azimuth,35));
+  const projected=track.map(p=>project3d(toTrackScene(p,2),azimuth,35));
   const horizontal=Math.max(.25,...track.map(p=>Math.hypot(p.x,p.y)));
-  const vertical=Math.max(.2,...track.map(p=>Math.abs(p.z*2)));
+  const vertical=Math.max(.2,...track.map(p=>Math.abs(toTrackScene(p,2).z)));
   const scale=Math.min(140/horizontal,72/vertical,15);
   const origin={x:202,y:163};
   const pt=(p:{x:number;y:number})=>({x:origin.x+p.x*scale,y:origin.y+p.y*scale});
   const line=(points:{x:number;y:number}[])=>points.map((p,i)=>{const q=pt(p);return `${i?'L':'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)}`;}).join(' ');
   const flat=track.map(p=>project3d({...p,z:0},azimuth,35));
   return <Card title="3D FLIGHT PATH / ALTITUDE" sub="OBSERVED LAT / LON / MSL ALT · 5-MINUTE MEMORY">
-    <div className="xsp-controls"><button type="button" onClick={()=>setAzimuth(a=>(a+45)%360)}>ROTATE VIEW ↻</button><small>VERTICAL DISPLAY ×2 · LOCAL APPROXIMATION</small></div>
+    <div className="xsp-controls"><button type="button" onClick={()=>setAzimuth(a=>(a+45)%360)}>ROTATE VIEW ↻</button><small>VERTICAL ×2 · HORIZONTAL & VERTICAL IN KM</small></div>
     <svg viewBox="0 0 420 252" className="xsp-svg" role="img" aria-label="Three-dimensional ground track with vertical altitude profile">
       {[-2,-1,0,1,2].map(k=><g key={k} stroke="#1d5066" opacity=".65" strokeWidth="1">
         <path d={line([project3d({x:-horizontal*1.2,y:k*horizontal/2,z:0},azimuth,35),project3d({x:horizontal*1.2,y:k*horizontal/2,z:0},azimuth,35)])} fill="none"/>
@@ -78,7 +78,7 @@ function TrackView({history,live}:{history:HistoryPoint[];live:boolean}) {
       {track.length<2&&<text x="210" y="119" textAnchor="middle" fill="#8cb3c4" fontSize="12">TRACK + ALTITUDE SAMPLES REQUIRED</text>}
       <text x="10" y="244" fontSize="10" fill="#7c9eb3">DISPLAY RELATIVE TO FIRST SAMPLE · NOT NAVIGATION GRADE</text>
     </svg>
-    <div className="xsp-data"><span>VALID PTS <b>{track.length}</b></span><span>MSL Δ <b>{track.length>1?fmt((observed.at(-1)!.altitude!-observed[0].altitude!),0):'—'} FT</b></span><span>{live?'LIVE':'STALE'}</span></div>
+    <div className="xsp-data"><span>VALID PTS <b>{track.length}</b></span><span>MSL Δ <b>{track.length>1?fmt((observed.at(-1)!.altitude!-observed[0].altitude!),0):'—'} FT</b></span><span>AGL <b>{fmt(live?aglFeet:null,0)} FT</b></span><span>{live?'LIVE':'STALE'}</span></div>
   </Card>;
 }
 function VectorView({status,live}:{status:ServerStatus;live:boolean}) {
@@ -104,6 +104,6 @@ export function SpatialMonitor({status,connected,history}:{status:ServerStatus;c
   const live=connected&&status.simulator.reachable&&status.simulator.telemetryFresh;
   return <section className="xsp-suite" aria-label="Three-dimensional simulator monitoring">
     <div className="xsp-heading"><strong>SPATIAL FLIGHT MONITORING / 3D</strong><span>GEOMETRIC PROJECTIONS · SIMULATOR READBACK ONLY</span></div>
-    <div className="xsp-grid"><AircraftView t={status.simulator.telemetry} live={live}/><TrackView history={history} live={live}/><VectorView status={status} live={live}/></div>
+    <div className="xsp-grid"><AircraftView t={status.simulator.telemetry} live={live}/><TrackView history={history} live={live} aglFeet={status.simulator.telemetry.aglFeet}/><VectorView status={status} live={live}/></div>
   </section>;
 }

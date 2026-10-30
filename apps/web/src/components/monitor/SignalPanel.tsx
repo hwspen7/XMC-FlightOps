@@ -68,6 +68,6 @@ export function SignalPanel({ connected, status }: Props) {
       <div><span>INPUT / OVERRIDE STATUS</span><strong>{tracking.state === 'matched' ? 'VERIFIED' : tracking.state === 'mismatch' ? 'INPUT DIFFERS' : tracking.state === 'override-lost' ? 'OVERRIDE LOST' : 'NO CHECK'}</strong></div>
     </div>}
     <div className="pilot-input"><div><span>PHONE ROLL</span><strong>{ctl.inputRoll===null?'---':percentDeflection(ctl.inputRoll)}</strong><div className="input-gauge"><i style={{left:`${50+47*(ctl.inputRoll??0)}%`}}/></div></div><div><span>PHONE PITCH</span><strong>{ctl.inputPitch===null?'---':percentDeflection(ctl.inputPitch)}</strong><div className="input-gauge"><i style={{left:`${50+47*(ctl.inputPitch??0)}%`}}/></div></div></div>
-    <div className="signal-note"><Activity size={15}/> Native feedback RTT includes the 10 Hz telemetry interval. Input delta compares the C++-applied frame with joystick readback. Cockpit/final controls can differ due to aircraft linkage and autopilot.</div>
+    <div className="signal-note"><Activity size={15}/> Native feedback RTT includes the telemetry reporting interval; it is not pure control latency. Input delta compares the C++-applied frame with joystick readback. Cockpit/final controls can differ due to aircraft linkage and autopilot.</div>
   </section>;
 }

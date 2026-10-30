@@ -1,0 +1,85 @@
+/* Two top-level desktop workspaces; retain the former detailed view under Operations. */
+.xmc-operations-merged {
+  max-width: 1900px;
+}
+.xmc-operations-merged .xmc-operations-nav {
+  z-index: 15;
+}
+.xmc-operations-merged .xmc-suite-page[hidden] {
+  display: none !important;
+}
+.xmc-suite-telemetry {
+  min-width: 0;
+  padding: 10px 0 0;
+}
+.xmc-suite-telemetry-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 16px;
+  margin-bottom: 10px;
+  border: 1px solid #28485f;
+  border-radius: 6px;
+  background: #0b2435;
+  color: #c5e3f4;
+}
+.xmc-suite-telemetry-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.xmc-suite-telemetry-heading strong {
+  font-size: 11px;
+  letter-spacing: .075em;
+}
+.xmc-suite-telemetry-heading span {
+  font-size: 10px;
+  color: #84afc8;
+}
+/* The 03 detailed observer now lives inside 02, so its former full-page hero
+   must not create a second top-level page header. All monitoring panels stay. */
+.xmc-suite-telemetry .monitor-operations-v2 {
+  min-height: 0;
+  background: transparent;
+}
+.xmc-suite-telemetry .monitor-operations-v2 .monitor-unified-header {
+  display: none;
+}
+.xmc-suite-telemetry .monitor-operations-v2 .monitor-main {
+  max-width: none;
+  padding-top: 0;
+}
+/* Match the web PFD to the mobile/live-overview PFD, without cropping its SVG. */
+.xmc-suite-telemetry .xmc-unified-flight-display {
+  min-width: 0;
+}
+.xmc-suite-telemetry .xmc-unified-pfd-housing {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  align-items: stretch;
+  padding: 6px;
+}
+.xmc-suite-telemetry .xmc-unified-pfd-housing > .xmc-pfd {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 640 / 365;
+  flex: 1 1 auto;
+}
+.xmc-suite-telemetry .xmc-unified-pfd-housing .xmc-pfd > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+@media (max-width: 950px) {
+  .xmc-operations-merged .xmc-operations-nav button {
+    flex: 1 1 40%;
+  }
+  .xmc-suite-telemetry-heading {
+    flex-wrap: wrap;
+  }
+}

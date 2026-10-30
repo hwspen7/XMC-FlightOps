@@ -31,3 +31,8 @@ export function validPosition(x:{latitude?:number|null;longitude?:number|null;al
     typeof x.longitude==='number'&&Number.isFinite(x.longitude)&&Math.abs(x.longitude)<=180&&
     typeof x.altitudeFeet==='number'&&Number.isFinite(x.altitudeFeet);
 }
+
+/** Convert track ENU: horizontal km, height metres -> scene height km (2× display). */
+export function toTrackScene(p:Vec3,verticalExaggeration=2):Vec3 {
+  return {x:p.x,y:p.y,z:p.z*verticalExaggeration/1000};
+}

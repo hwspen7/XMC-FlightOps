@@ -12,7 +12,7 @@ import { controlPhase } from './control-phase';
 @WebSocketGateway({ path: '/control' })
 export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private readonly logger = new Logger(ControlGateway.name);
-  private readonly clock = setInterval(() => this.tick(), 100);
+  private readonly clock = setInterval(() => this.tick(), 50);
   private lastStatusAt = 0;
   private readonly attempts = new WeakMap<WebSocket, { count: number; windowStart: number }>();
   private readonly session = new ControllerSession();
@@ -176,7 +176,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
       }
       this.broadcastStatus();
     }
-    if (Date.now() - this.lastStatusAt > (this.simulator.status().reachable ? 150 : 1000)) {
+    if (Date.now() - this.lastStatusAt > (this.simulator.status().reachable ? 80 : 1000)) {
       this.lastStatusAt = Date.now();
       this.broadcastStatus();
     }

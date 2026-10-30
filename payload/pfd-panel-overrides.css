@@ -1,0 +1,46 @@
+/* XMC PFD alignment / wide-card layout, shared mobile PFD in web monitor. */
+/* Preserve the 640:365 instrument geometry. Resize its card instead of distorting it. */
+.xpd-primary { grid-template-columns: repeat(12, minmax(0,1fr)); }
+.xpd-primary .xpd-pfd-panel { grid-column: span 6; }
+.xpd-primary .xpd-track-panel { grid-column: span 6; }
+.xpd-primary .xpd-engines-panel,
+.xpd-primary .xpd-fuel-panel,
+.xpd-primary .xpd-mobile-panel { grid-column: span 4; }
+.xpd-pfd-panel .xpd-pfd-mobile-clone {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+}
+.xpd-pfd-panel .xpd-pfd-mobile-clone .xmc-pfd {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 365;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+}
+.xpd-pfd-panel .xpd-pfd-mobile-clone .xmc-pfd svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 640 / 365;
+}
+@media (max-width: 900px) {
+  .xpd-primary .xpd-pfd-panel,
+  .xpd-primary .xpd-track-panel { grid-column: span 12; }
+  .xpd-primary .xpd-engines-panel,
+  .xpd-primary .xpd-fuel-panel,
+  .xpd-primary .xpd-mobile-panel { grid-column: span 4; }
+}
+@media (max-width: 600px) {
+  .xpd-primary .xpd-pfd-panel,
+  .xpd-primary .xpd-track-panel,
+  .xpd-primary .xpd-engines-panel,
+  .xpd-primary .xpd-fuel-panel,
+  .xpd-primary .xpd-mobile-panel { grid-column: 1 / -1; }
+}

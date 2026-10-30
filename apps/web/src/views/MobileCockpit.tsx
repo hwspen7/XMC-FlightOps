@@ -41,7 +41,12 @@ export function MobileCockpit({ flight, onDesktop }: Props) {
     return () => document.documentElement.classList.remove('mobile-flight-locked');
   }, []);
 
-  return <div className="mobile-cockpit fd-layout">
+  return <div className="mobile-cockpit fd-layout" onContextMenu={(event) => {
+    const target = event.target;
+    if (target instanceof Element && !target.closest('input, textarea, select, [contenteditable], [role="textbox"]')) {
+      event.preventDefault();
+    }
+  }}>
     <header className="mobile-topbar fd-topbar" aria-label="Flight controller status and primary controls">
       <div className="fd-link-status" title={headline}>
         <span className={`status-orb ${armed ? 'armed' : socket.connected ? 'linked' : ''}`}/>
@@ -115,7 +120,7 @@ export function MobileCockpit({ flight, onDesktop }: Props) {
         </div>
       </div>
       <div className="fd-right">
-        <CompactFlightControls telemetry={data} live={live} active={controlsAvailable} sendPedal={flight.sendPedal} sendAction={flight.sendAuxiliary}/>
+        <CompactFlightControls telemetry={data} live={live} active={controlsAvailable} speedbrakeAuthorized={armed && live && sim.outputEnabled} sendPedal={flight.sendPedal} sendAction={flight.sendAuxiliary}/>
       </div>
     </main>
 

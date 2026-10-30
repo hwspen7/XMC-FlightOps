@@ -1,3 +1,4 @@
+/* XMC_CONTROL_INSTRUMENT_RELIABILITY_20261029 */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { FlightTelemetry } from '@xplane/shared';
@@ -39,6 +40,7 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
   const forwardSendRef = useRef({ at: 0, value: -1 });
   const reverseSendRef = useRef({ at: 0, value: -1 });
   const maxReverseLatched = useRef(false);
+  const lastForwardGestureAt = useRef(0);
 
   const actual = live ? telemetry.throttleRatio : null;
   const onGround = live && telemetry.onGround === 1;
@@ -57,8 +59,9 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
 
   const forwardCommand = (value: number, force = false) => {
     const now = performance.now();
+    lastForwardGestureAt.current = now;
     const current = forwardSendRef.current;
-    if (force || (current.value !== value && (now - current.at >= 65 || value === 0 || value === 100))) {
+    if (force || (current.value !== value && (now - current.at >= 95 || value === 0 || value === 100))) {
       sendThrottle(value / 100);
       forwardSendRef.current = { at: now, value };
     }
@@ -109,15 +112,26 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
 
   useEffect(() => {
     if (dragging || !live) return;
-    if (reverseActual !== null) {
-      const newPosition = fractionForReverse(reverseActual);
-      positionRef.current = newPosition;
-      setPosition(newPosition);
-    } else if (actual !== null) {
-      const newPosition = fractionForForward(actual * 100);
-      positionRef.current = newPosition;
-      setPosition(newPosition);
+    const applyReadback = () => {
+      if (drag.current) return;
+      if (reverseActual !== null) {
+        const next = fractionForReverse(reverseActual);
+        positionRef.current = next;
+        setPosition(next);
+      } else if (actual !== null) {
+        const next = fractionForForward(actual * 100);
+        positionRef.current = next;
+        setPosition(next);
+      }
+    };
+    // Wait for a later telemetry sample, but never leave an unconfirmed
+    // command visually latched. Resync even if readback did not change.
+    const wait = 350 - (performance.now() - lastForwardGestureAt.current);
+    if (wait > 0) {
+      const timer = window.setTimeout(applyReadback, wait);
+      return () => window.clearTimeout(timer);
     }
+    applyReadback();
   }, [actual, reverseActual, dragging, live]);
 
   useEffect(() => {
@@ -268,7 +282,7 @@ export function ThrottleLever({ telemetry, live, active, sendThrottle, sendPedal
       </div>
     </div>
     <div className={`fd-throttle-hint ${detentBlocked ? 'fd-throttle-hint-locked' : ''}`}>
-      {autothrottle ? 'AUTOTHROTTLE' : !active ? 'MONITOR ONLY'
+      {autothrottle ? 'AUTOTHROTTLE · THR LOCKED' : !live ? 'WAITING FOR SIM DATA' : !active ? 'ARM / VERIFY CONTROL'
         : !onGround ? 'REVERSE LOCKED IN AIR'
         : detentBlocked ? 'ARMING REVERSE · WAIT FOR IDLE' 
         : values.reverse >= 99 ? 'MAX REV COMMAND'

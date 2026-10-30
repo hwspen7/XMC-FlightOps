@@ -10,6 +10,7 @@ interface Props {
   telemetry: FlightTelemetry;
   live: boolean;
   active: boolean;
+  speedbrakeAuthorized?: boolean;
   sendPedal: (action: Pedal, value: number) => void;
   sendAction: (action: AuxiliaryAction) => void;
 }
@@ -113,7 +114,7 @@ export function TouchBrake({ active, send, ratio }: { active: boolean; send: Pro
   </section>;
 }
 
-export function CompactFlightControls({ telemetry, live, active, sendPedal, sendAction }: Props) {
+export function CompactFlightControls({ telemetry, live, active, speedbrakeAuthorized = false, sendPedal, sendAction }: Props) {
   const ground = live && telemetry.onGround === 1;
   const flapInfo = live ? buildFlapDisplay(
     telemetry.aircraftIcao,
@@ -167,7 +168,7 @@ export function CompactFlightControls({ telemetry, live, active, sendPedal, send
       </div>
     </section>
     <div className="fd-secondary-stack">
-      <button type="button" className="fd-spoilers fd-speedbrake-button fd-tile" disabled={!active}
+      <button type="button" className="fd-spoilers fd-speedbrake-button fd-tile" disabled={!(active || (speedbrakeAuthorized && ground))} title="Manual ground toggle. Aircraft automatic touchdown deployment is configured separately in X-Plane."
         onClick={() => sendAction('spoilers-toggle')}
         aria-label={`Toggle speedbrake. ${spoiler === null ? 'Feedback unavailable' : spoiler < 5 ? 'Stowed' : `Deployed ${spoiler}%`}`}>
         <span className="fd-speedbrake-heading">SPEEDBRAKE</span>

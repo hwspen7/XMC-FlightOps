@@ -1,7 +1,9 @@
+/* XMC_CONTROL_INSTRUMENT_RELIABILITY_20261029 */
 import { Injectable } from '@nestjs/common';
 import type { AuxiliaryAction, ControlFrame } from '@xplane/shared';
 import { isAuxiliaryAction } from '../xplane/commands';
 import { XPlaneService } from '../xplane/xplane.service';
+import { LatestThrottleQueue } from './latestThrottleQueue';
 
 export const TIMEOUT_MS = 350;
 
@@ -32,7 +34,7 @@ export class ControlService {
   private lastAction: string | null = null;
   private lastActionAt: number | null = null;
   private throttleCommand: number | null = null;
-  private lastThrottleAt = 0;
+  private readonly throttleQueue = new LatestThrottleQueue(95);
   private lastAuxAt = 0;
   private lastPedalAt = new Map<string, number>();
   private rudderCommand: number | null = null;
@@ -71,6 +73,7 @@ export class ControlService {
     this.armIssuedAt = Date.now();
     this.nativeConfirmed = false;
     this.sequence = -1;
+    this.throttleQueue.reset();
     this.lastAcceptedAt = 0;
     this.lastInput = null;
     this.rateWindowStart = Date.now();
@@ -101,15 +104,19 @@ export class ControlService {
 
   throttle(client: object, value: unknown): boolean {
     if (!this.isOwner(client) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) return false;
-    if (Date.now() - this.lastThrottleAt < 80) return false;
-    const status = this.simulator.status();
-    if (status.telemetry.autothrottleOn === 1) return false;
-    this.lastThrottleAt = Date.now();
-    if (!this.simulator.throttle(value)) return false;
-    this.throttleCommand = value;
-    this.lastAction = 'throttle';
-    this.lastActionAt = Date.now();
-    return true;
+    if (this.simulator.status().telemetry.autothrottleOn === 1) return false;
+    // Subsequent slider updates supersede pending inputs instead of being
+    // silently lost. Idle is immediate. Every delayed write rechecks authority.
+    return this.throttleQueue.offer(value, () => {
+      if (!this.isOwner(client)) return false;
+      const status = this.simulator.status();
+      if (!status.reachable || status.telemetry.autothrottleOn === 1) return false;
+      if (!this.simulator.throttle(value)) return false;
+      this.throttleCommand = value;
+      this.lastAction = 'throttle';
+      this.lastActionAt = Date.now();
+      return true;
+    });
   }
 
   auxiliary(client: object, action: unknown): boolean {
@@ -145,6 +152,7 @@ export class ControlService {
   }
 
   private clearOwner(): void {
+    this.throttleQueue.reset();
     this.owner = null;
     this.armIssuedAt = 0;
     this.nativeConfirmed = false;

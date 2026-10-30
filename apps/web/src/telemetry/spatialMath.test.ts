@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aircraftToWorld, project3d, toLocalTrack, validPosition } from './spatialMath';
+import { aircraftToWorld, project3d, toLocalTrack, toTrackScene, validPosition } from './spatialMath';
 
 describe('simulator spatial monitor geometry', () => {
   it('points aircraft forward to north at zero heading, east at heading 90', () => {
@@ -22,6 +22,10 @@ describe('simulator spatial monitor geometry', () => {
   it('keeps paths continuous across the international date line', () => {
     const pts=toLocalTrack([{latitude:0,longitude:179.99,altitudeFeet:1000,at:1},{latitude:0,longitude:-179.99,altitudeFeet:1000,at:2}]);
     expect(pts[1].x).toBeCloseTo(2.2239,3);
+  });
+  it('uses common kilometre units for the 3D track projection', () => {
+    const scene=toTrackScene({x:2,y:3,z:250},2);
+    expect(scene).toEqual({x:2,y:3,z:0.5});
   });
   it('does not project missing heights and keeps finite camera output', () => {
     expect(validPosition({latitude:40,longitude:-83,altitudeFeet:null})).toBe(false);

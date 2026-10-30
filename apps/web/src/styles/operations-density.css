@@ -1,0 +1,747 @@
+/*
+ * Dense desktop operations workspace.
+ * Scoped to 02 / OPERATIONS; the mobile cockpit and 01 LIVE OVERVIEW remain untouched.
+ * No telemetry state, chart data, or business logic is changed.
+ */
+.xmc-operations-merged .xmc-ops-density-control {
+  margin-left: auto;
+  padding: 7px 11px;
+  flex: 0 0 auto;
+  border: 1px solid #42758f;
+  border-radius: 5px;
+  background: #10364c;
+  color: #c9e8f9;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .045em;
+  white-space: nowrap;
+}
+.xmc-operations-merged .xmc-ops-density-control:hover { background: #1b526c; }
+.xmc-operations-merged .xmc-ops-density-control:focus-visible { outline: 2px solid #7fd4ff; outline-offset: 2px; }
+.xmc-operations-merged .xmc-operations-nav > span { margin-left: 0; }
+
+/* Defaults are more compact even at lower desktop resolutions. */
+.xmc-operations-merged.xmc-ops-compact {
+  box-sizing: border-box;
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+.xmc-ops-compact .xmc-operations-nav {
+  padding: 7px 9px;
+  gap: 5px;
+  border-radius: 6px;
+}
+.xmc-ops-compact .xmc-operations-nav button:not(.xmc-ops-density-control) {
+  padding: 8px 11px;
+  font-size: 10px;
+}
+.xmc-ops-compact .xmc-suite-page {
+  min-width: 0;
+  padding-top: 8px;
+}
+
+/* System state: six metrics in a row, four genuinely useful small trend charts. */
+.xmc-ops-compact .xmc-suite-page > .systems-health-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.xmc-ops-compact .systems-health-card .card-heading { padding: 11px 14px 7px; }
+.xmc-ops-compact .systems-health-card .card-heading h2 { font-size: 16px; margin-top: 3px; }
+.xmc-ops-compact .systems-health-card .chart-subtitle { font-size: 10px; margin-top: 3px; }
+.xmc-ops-compact .systems-summary {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  margin: 8px 11px 10px;
+}
+.xmc-ops-compact .systems-summary > div { padding: 9px 10px; border-radius: 6px; gap: 3px; }
+.xmc-ops-compact .systems-summary strong { font-size: clamp(16px, 1.25vw, 22px); }
+.xmc-ops-compact .systems-summary span,
+.xmc-ops-compact .systems-summary small { font-size: 9px; }
+.xmc-ops-compact .systems-quiet { margin: 5px 11px; padding: 9px 11px; }
+.xmc-ops-compact .systems-active { margin: 5px 11px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.xmc-ops-compact .systems-alert { padding: 8px 9px; }
+.xmc-ops-compact .systems-events-head { margin: 14px 12px 8px; }
+.xmc-ops-compact .systems-window-picker button { padding: 5px 8px; }
+.xmc-ops-compact .systems-trends {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 11px;
+}
+.xmc-ops-compact .systems-trend { padding: 8px; border-radius: 6px; }
+.xmc-ops-compact .systems-trend svg { max-height: 140px; margin-top: 3px; }
+.xmc-ops-compact .systems-trend-heading { flex-wrap: wrap; gap: 2px; }
+.xmc-ops-compact .systems-trend-heading strong { font-size: 11px; }
+.xmc-ops-compact .systems-chart-legend { gap: 5px 9px; font-size: 9px; }
+.xmc-ops-compact .systems-subheading { margin: 15px 12px 9px; }
+.xmc-ops-compact .systems-groups { gap: 8px; margin: 0 11px 8px; }
+.xmc-ops-compact .systems-groups > div { padding: 10px; border-radius: 7px; }
+.xmc-ops-compact .systems-groups h3 { font-size: 12px; margin-bottom: 6px; }
+.xmc-ops-compact .systems-groups p { margin: 6px 0; gap: 5px; font-size: 10px; }
+.xmc-ops-compact .systems-events { padding: 0 11px 9px; max-height: 150px; }
+.xmc-ops-compact .systems-events > div { padding: 7px; }
+
+/* Systems topology: the former 1280px document becomes a three-column
+   equipment console, while the event timeline retains full width. */
+.xmc-ops-compact .xmc-systems-suite {
+  max-width: none;
+  width: 100%;
+  margin: 9px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+}
+.xmc-ops-compact .xmc-systems-suite > header h2 { font-size: 17px; margin: 4px 0; }
+.xmc-ops-compact .xmc-systems-suite > header p { font-size: 10px; }
+.xmc-ops-compact .xmc-systems-status { gap: 7px; margin: 12px 0; }
+.xmc-ops-compact .xmc-systems-status > div { padding: 8px 10px; gap: 5px; }
+.xmc-ops-compact .xmc-systems-status b { font-size: 15px; }
+.xmc-ops-compact .xmc-systems-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.xmc-ops-compact .xmc-system-card { padding: 11px 12px; border-radius: 7px; }
+.xmc-ops-compact .xmc-system-card h3 { font-size: 11px; margin-bottom: 3px; }
+.xmc-ops-compact .xmc-system-card > small { font-size: 9px; line-height: 1.35; }
+.xmc-ops-compact .xmc-system-card svg { max-height: 175px; margin-top: 8px; }
+.xmc-ops-compact .xmc-system-rows { margin-top: 8px; }
+.xmc-ops-compact .xmc-system-row { padding: 6px 0; font-size: 10px; }
+.xmc-ops-compact .xmc-tech-note { margin: 7px 0 0; font-size: 9px; line-height: 1.35; }
+.xmc-ops-compact .xmc-event-panel { margin-top: 9px; }
+.xmc-ops-compact .xmc-event-panel svg { max-width: 1080px; max-height: 285px; margin: 6px auto; }
+.xmc-ops-compact .xmc-event-legend { gap: 10px; }
+
+/* Flight analytics: preserve readable, seven-lane synchronized history at
+   approximately 2/3 width and use the side column for the small plots. */
+.xmc-ops-compact .xmc-pro-suite {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: 9px;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-pro-heading,
+.xmc-ops-compact .xmc-pro-suite > .xmc-pro-kpis { grid-column: 1 / -1; min-width: 0; }
+.xmc-ops-compact .xmc-pro-heading h2 { font-size: 18px; margin: 3px 0; }
+.xmc-ops-compact .xmc-pro-heading p { font-size: 10px; }
+.xmc-ops-compact .xmc-pro-kpis { gap: 7px; margin: 0; }
+.xmc-ops-compact .xmc-pro-kpis > div { padding: 8px 10px; gap: 3px; }
+.xmc-ops-compact .xmc-pro-kpis strong { font-size: 13px; }
+.xmc-ops-compact .xmc-advanced-card {
+  margin: 0;
+  padding: 10px 11px;
+  border-radius: 7px;
+  min-width: 0;
+}
+.xmc-ops-compact .xmc-card-head { gap: 8px; }
+.xmc-ops-compact .xmc-card-head > div:first-child { gap: 3px; }
+.xmc-ops-compact .xmc-card-head b { font-size: 11px; }
+.xmc-ops-compact .xmc-card-head small { font-size: 9px; line-height: 1.35; }
+.xmc-ops-compact .xmc-advanced-card svg { margin-top: 6px; }
+/* DOM children: header, KPIs, speed envelope, seven-track chart, paired plots, exceptions. */
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(3) {
+  grid-column: 9 / -1;
+  grid-row: 3;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4) {
+  grid-column: 1 / 9;
+  grid-row: 3 / span 2;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid {
+  grid-column: 9 / -1;
+  grid-row: 4;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(6) {
+  grid-column: 1 / -1;
+  grid-row: 5;
+}
+.xmc-ops-compact .xmc-advanced-grid .xmc-advanced-card svg { max-height: 200px; }
+.xmc-ops-compact .xmc-evidence { margin-top: 6px; gap: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.xmc-ops-compact .xmc-evidence > div { padding: 8px; gap: 4px; grid-template-columns: 1fr; }
+.xmc-ops-compact .xmc-evidence small { grid-column: auto; }
+
+/* Replay: make the history chart an 8-column centerpiece and keep the event
+   inspector visible alongside it, rather than stacking two very tall cards. */
+.xmc-ops-compact .xmc-recorder {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 9px;
+  align-items: start;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+}
+.xmc-ops-compact .xmc-recorder > header,
+.xmc-ops-compact .xmc-recorder > .xmc-record-toolbar,
+.xmc-ops-compact .xmc-recorder > .xmc-import-error,
+.xmc-ops-compact .xmc-recorder > .xmc-stats,
+.xmc-ops-compact .xmc-recorder > .xmc-scenarios { grid-column: 1 / -1; margin: 0; }
+.xmc-ops-compact .xmc-recorder header h2 { font-size: 18px; margin: 4px 0; }
+.xmc-ops-compact .xmc-recorder header p { font-size: 10px; margin: 0; }
+.xmc-ops-compact .xmc-record-toolbar { gap: 5px; }
+.xmc-ops-compact .xmc-record-toolbar button,
+.xmc-ops-compact .xmc-import,
+.xmc-ops-compact .xmc-scenarios button { padding: 7px 9px; font-size: 10px; }
+.xmc-ops-compact .xmc-stats { gap: 7px; }
+.xmc-ops-compact .xmc-stats > div { padding: 8px 10px; gap: 3px; border-radius: 5px; }
+.xmc-ops-compact .xmc-stats b { font-size: 15px; }
+.xmc-ops-compact .xmc-playback {
+  grid-column: 1 / 9;
+  min-width: 0;
+  margin: 0;
+  padding: 11px;
+}
+.xmc-ops-compact .xmc-playback > div { align-items: center; }
+.xmc-ops-compact .xmc-playback > input { margin: 8px 0; }
+.xmc-ops-compact .xmc-playback svg { display: block; width: 100%; height: auto; }
+.xmc-ops-compact .xmc-play-controls { gap: 6px; margin: 7px 0; }
+.xmc-ops-compact .xmc-record-events {
+  grid-column: 9 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 11px;
+}
+.xmc-ops-compact .xmc-record-events > div { max-height: 360px; }
+.xmc-ops-compact .xmc-record-events button { grid-template-columns: 73px 1fr; padding: 6px; gap: 4px; }
+.xmc-ops-compact .xmc-scenarios { padding-top: 9px; }
+.xmc-ops-compact .xmc-scenarios p { margin: 6px 0; }
+
+/* Former workspace 03, now 02 / RAW TELEMETRY. Preserve every card, chart,
+   diagnostic, PFD and 3D view, but avoid oversized chart cards. */
+.xmc-ops-compact .xmc-suite-telemetry { padding-top: 0; }
+.xmc-ops-compact .xmc-suite-telemetry-heading { padding: 8px 12px; margin-bottom: 8px; }
+.xmc-ops-compact .monitor-operations-v2 .monitor-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 5px 0 16px;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-kpis {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-kpi {
+  min-height: 78px;
+  padding: 10px;
+  border-radius: 7px;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-kpi strong { font-size: 26px; margin-top: 5px; }
+.xmc-ops-compact .monitor-operations-v2 .monitor-kpi small { font-size: 9px; margin-top: 3px; }
+.xmc-ops-compact .monitor-operations-v2 .monitor-section-header { margin: 15px 0 8px; }
+.xmc-ops-compact .monitor-operations-v2 .monitor-section-header h2 { font-size: 18px; margin-top: 4px; }
+.xmc-ops-compact .monitor-operations-v2 .monitor-section-header > span { font-size: 9px; }
+.xmc-ops-compact .monitor-assessment-grid { gap: 7px; padding: 0 10px 10px; }
+.xmc-ops-compact .monitor-assessment-item { min-height: 75px; padding: 9px; }
+.xmc-ops-compact .monitor-quick-readouts > div { padding: 9px; }
+.xmc-ops-compact .monitor-quick-readouts strong { font-size: 17px; margin-top: 4px; }
+.xmc-ops-compact .primary-monitor-grid { gap: 9px; }
+.xmc-ops-compact .monitor-card,
+.xmc-ops-compact .pfd-card { border-radius: 7px; }
+.xmc-ops-compact .card-heading { padding: 10px 12px 7px; }
+.xmc-ops-compact .card-heading h2 { font-size: 15px; margin-top: 4px; }
+.xmc-ops-compact .chart-subtitle { font-size: 10px; margin-top: 3px; }
+.xmc-ops-compact .flight-display .section-topline { padding: 9px 10px 6px; }
+.xmc-ops-compact .pfd-bottomline { padding: 7px 11px 8px; font-size: 8px; }
+.xmc-ops-compact .xmc-unified-pfd-housing { padding: 3px 8px; }
+.xmc-ops-compact .aircraft-scene { margin: 0 10px; width: calc(100% - 20px); max-height: 240px; }
+.xmc-ops-compact .model-angles { margin-top: 5px; }
+.xmc-ops-compact .model-angles > div { padding: 8px; }
+.xmc-ops-compact .model-angles strong { font-size: 19px; }
+.xmc-ops-compact .monitor-charts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.xmc-ops-compact .monitor-charts .trend-card { min-width: 0; }
+.xmc-ops-compact .monitor-charts .card-heading { padding: 9px 10px 5px; }
+.xmc-ops-compact .monitor-charts .card-heading h2 { font-size: 13px; }
+.xmc-ops-compact .monitor-charts .chart-plot { padding: 4px 9px 0; }
+.xmc-ops-compact .monitor-charts .chart-plot svg { width: 100%; height: 146px; }
+.xmc-ops-compact .monitor-chart-controls { padding: 4px 9px; }
+.xmc-ops-compact .monitor-chart-controls button { padding: 4px 7px; font-size: 9px; }
+.xmc-ops-compact .monitor-chart-stats span { padding: 6px 7px; font-size: 8px; }
+.xmc-ops-compact .monitor-series-toggle { padding: 6px 9px 8px; gap: 4px; }
+.xmc-ops-compact .monitor-series-toggle button { padding: 5px 7px; font-size: 9px; }
+.xmc-ops-compact .chart-legend { padding: 4px 10px 9px; gap: 5px 8px; font-size: 9px; }
+.xmc-ops-compact .telemetry-groups { column-gap: 9px; padding: 2px 10px 10px; }
+.xmc-ops-compact .telemetry-group { margin-bottom: 9px; padding: 9px; }
+.xmc-ops-compact .telemetry-row { min-height: 27px; padding: 5px 0; }
+.xmc-ops-compact .telemetry-row strong { font-size: 14px; }
+.xmc-ops-compact .signal-panel > .signal-stack { padding-bottom: 9px; }
+.xmc-ops-compact .signal-panel > .diagnostic-grid { padding: 8px; gap: 7px; }
+.xmc-ops-compact .signal-panel .diagnostic-grid > div { min-height: 50px; padding: 8px; }
+.xmc-ops-compact .signal-panel .diagnostic-grid strong { font-size: 18px; }
+.xmc-ops-compact .monitor-footer { margin-top: 15px; padding: 10px 0; }
+
+/* Intermediate screens retain legible labels and avoid cramped tiny charts. */
+@media (max-width: 1399px) {
+  .xmc-ops-compact .systems-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .xmc-ops-compact .systems-trends { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .xmc-systems-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .monitor-charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .monitor-charts .chart-plot svg { height: 160px; }
+}
+@media (max-width: 1240px) {
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(3),
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4),
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid,
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(6) { grid-column: 1 / -1; grid-row: auto; }
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .xmc-playback { grid-column: 1 / -1; }
+  .xmc-ops-compact .xmc-record-events { grid-column: 1 / -1; }
+  .xmc-ops-compact .xmc-record-events > div { max-height: 180px; }
+  .xmc-ops-compact .systems-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .monitor-operations-v2 .monitor-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 780px) {
+  .xmc-operations-merged .xmc-ops-density-control { margin-left: 0; }
+  .xmc-ops-compact .xmc-operations-nav { position: relative; }
+  .xmc-ops-compact .xmc-operations-nav button:not(.xmc-ops-density-control) { flex: 1 1 40%; }
+  .xmc-ops-compact .systems-summary,
+  .xmc-ops-compact .xmc-systems-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .systems-trends,
+  .xmc-ops-compact .xmc-systems-grid,
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid,
+  .xmc-ops-compact .systems-groups,
+  .xmc-ops-compact .monitor-charts { grid-template-columns: 1fr; }
+  .xmc-ops-compact .xmc-recorder > .xmc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .xmc-pro-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .monitor-operations-v2 .monitor-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xmc-ops-compact .primary-monitor-grid { grid-template-columns: 1fr; }
+  .xmc-ops-compact .monitor-charts .chart-plot svg { height: 175px; }
+  .xmc-ops-compact .xmc-evidence { grid-template-columns: 1fr; }
+}
+
+/* Operations telemetry cleanup: eliminate awkward final-row gaps and give the
+   3D attitude card a full-width engineering canvas. */
+.xmc-ops-compact .monitor-charts {
+  grid-auto-flow: dense;
+  align-items: start;
+}
+.xmc-ops-compact .monitor-charts > :last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+.xmc-ops-compact .monitor-charts > :last-child:nth-child(3n + 2) {
+  grid-column: span 2;
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card .card-heading {
+  padding-bottom: 10px;
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card .aircraft-scene {
+  width: calc(100% - 20px);
+  height: 360px;
+  max-height: none;
+  margin: 0 10px;
+  border-radius: 8px;
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card .model-angles {
+  margin-top: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card .model-angles > div {
+  padding: 10px 12px;
+}
+.xmc-ops-compact .monitor-operations-v2 .model-card .model-angles strong {
+  font-size: 22px;
+}
+@media (max-width: 1399px) {
+  .xmc-ops-compact .monitor-charts > :last-child:nth-child(2n + 1) {
+    grid-column: 1 / -1;
+  }
+  .xmc-ops-compact .monitor-charts > :last-child:nth-child(2n) {
+    grid-column: auto;
+  }
+  .xmc-ops-compact .monitor-operations-v2 .model-card .aircraft-scene {
+    height: 320px;
+  }
+}
+@media (max-width: 780px) {
+  .xmc-ops-compact .monitor-charts > :last-child {
+    grid-column: auto;
+  }
+  .xmc-ops-compact .monitor-operations-v2 .model-card .aircraft-scene {
+    height: 260px;
+    width: calc(100% - 16px);
+    margin: 0 8px;
+  }
+}
+
+/* Systems + diagnostics alignment refinement.
+   Keep the compact density, but remove the obvious dead area by using
+   masonry-style columns for parameter groups and a structured diagnostics grid. */
+.xmc-ops-compact .xmc-systems-grid {
+  display: block;
+  column-count: 3;
+  column-gap: 8px;
+}
+.xmc-ops-compact .xmc-systems-grid > .xmc-system-card {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 8px;
+  vertical-align: top;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.xmc-ops-compact .signal-panel {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+}
+.xmc-ops-compact .signal-panel > .card-heading,
+.xmc-ops-compact .signal-panel > .pilot-input,
+.xmc-ops-compact .signal-panel > .signal-note {
+  grid-column: 1 / -1;
+}
+.xmc-ops-compact .signal-panel > .signal-stack {
+  grid-column: 1 / 5;
+  padding: 0 10px 10px;
+  display: grid;
+  align-content: start;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid {
+  grid-column: 5 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+  grid-column: span 6;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #24465d;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+  border-left: 1px solid #24465d;
+}
+.xmc-ops-compact .signal-panel > .pilot-input {
+  margin-top: 0;
+  border-top: 1px solid #24465d;
+}
+
+@media (max-width: 1399px) {
+  .xmc-ops-compact .xmc-systems-grid {
+    column-count: 2;
+  }
+  .xmc-ops-compact .signal-panel > .signal-stack {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 8px;
+  }
+  .xmc-ops-compact .signal-panel > .diagnostic-grid,
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-left: 0;
+  }
+}
+
+@media (max-width: 780px) {
+  .xmc-ops-compact .xmc-systems-grid {
+    column-count: 1;
+  }
+  .xmc-ops-compact .signal-panel > .signal-stack {
+    grid-template-columns: 1fr;
+  }
+  .xmc-ops-compact .signal-panel > .diagnostic-grid,
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Operations side-by-side alignment correction.
+ * Keep the existing advanced aircraft model INSIDE the right column of the
+ * PRIMARY FLIGHT DISPLAY row; never create a standalone full-width 3D row.
+ * Both cells share a bottom edge, and the last RAW TELEMETRY chart row
+ * stretches Ground track to the height of Gear deployment channels.
+ * This override intentionally follows earlier density rules.
+ */
+.xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+.xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .pfd-card {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+.xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .model-card {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+.xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .model-card .aircraft-scene {
+  display: block;
+  align-self: stretch;
+  justify-self: stretch;
+  box-sizing: border-box;
+  width: calc(100% - 20px);
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin: 0 10px;
+  border-radius: 7px;
+}
+.xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .model-card .model-angles {
+  align-self: end;
+  margin: 8px 0 0;
+}
+
+/* Keep the final, partially filled chart row visually level. The last
+ * GroundTrack plot stretches into the available card body space rather than
+ * leaving an uneven lower edge next to Gear deployment channels. */
+.xmc-ops-compact .monitor-operations-v2 .monitor-charts {
+  align-items: stretch;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-charts > .trend-card {
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-charts > .trend-card:not(.monitor-trend-advanced) {
+  display: flex;
+  flex-direction: column;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-charts > .trend-card:not(.monitor-trend-advanced) > .chart-plot {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.xmc-ops-compact .monitor-operations-v2 .monitor-charts > .trend-card:not(.monitor-trend-advanced) > .chart-plot > svg {
+  flex: 1 1 auto;
+  display: block;
+  width: 100%;
+  min-height: 145px;
+  height: 100%;
+}
+
+/* The 02 workspace can also be viewed on a tablet. Its primary panels
+ * switch back to one column instead of overlapping at narrow widths. */
+@media (max-width: 780px) {
+  .xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .pfd-card,
+  .xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .model-card {
+    grid-column: 1;
+    grid-row: auto;
+    height: auto;
+  }
+  .xmc-ops-compact .monitor-operations-v2 .primary-monitor-grid > .model-card .aircraft-scene {
+    min-height: 260px;
+    height: 300px;
+  }
+}
+
+
+/*
+ * Operations alignment follow-up, built on the LAST systems/diagnostics patch.
+ * This restores the PFD + 3D paired-row fix accidentally lost by that patch,
+ * then aligns the two native diagnostic grids and the analytics main column.
+ */
+
+/* 7 native diagnostic tiles -> rows of 4 + 3, no orphan third row.
+ * 6 control-sync tiles -> rows of 3 + 3; both boxes have equal row count.
+ * The seventh native tile spans the final two columns in the second row. */
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"] {
+  grid-column: 1 / 7;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(53px, 1fr));
+  grid-auto-rows: minmax(53px, auto);
+  align-self: stretch;
+  align-content: stretch;
+  box-sizing: border-box;
+  gap: 7px;
+  padding: 9px;
+  min-width: 0;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"] > :last-child:nth-child(4n + 3) {
+  grid-column: span 2;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+  grid-column: 7 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(53px, 1fr));
+  grid-auto-rows: minmax(53px, auto);
+  align-self: stretch;
+  align-content: stretch;
+  box-sizing: border-box;
+  gap: 7px;
+  padding: 9px;
+  min-width: 0;
+}
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"] > div,
+.xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] > div {
+  min-width: 0;
+  min-height: 53px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+}
+
+/* Flight analytics: pair the seven-track card's top and bottom boundaries
+ * with the stacked speed-envelope, engine phase-space and heading rose.
+ * The main chart must grow with its grid area rather than stop at its
+ * intrinsic SVG aspect ratio and leave external whitespace. */
+.xmc-ops-compact .xmc-pro-suite {
+  align-items: stretch;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4) > .xmc-multitrack {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 360px;
+  max-height: 680px;
+  display: block;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4) > .xmc-foot {
+  flex: 0 0 auto;
+  margin-top: auto;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-self: stretch;
+  min-height: 0;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid > .xmc-advanced-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+.xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid > .xmc-advanced-card > svg {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 150px;
+  max-height: 220px;
+}
+
+/* Tablet: retain full-width, readable diagnostics and avoid forcing a narrow
+ * 4-column panel. Paired alignment is applied only where it can fit. */
+@media (max-width: 1099px) {
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"],
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-column: 1 / -1;
+    border-left: 0;
+  }
+}
+@media (max-width: 780px) {
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="Native real-time flight loop measurements"] > :last-child:nth-child(4n + 3) {
+    grid-column: 1 / -1;
+  }
+  .xmc-ops-compact .signal-panel > .diagnostic-grid[aria-label="X-Plane actual flight control synchronization"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-grid {
+    grid-template-rows: auto;
+  }
+  .xmc-ops-compact .xmc-pro-suite > .xmc-advanced-card:nth-child(4) > .xmc-multitrack {
+    min-height: 0;
+    height: auto;
+  }
+}
+
+/* XMC SYSTEM GRID CASCADE FIX BEGIN - 2026-10-30
+ * Keep six equipment cards in a true grid rather than the legacy
+ * column-count masonry layout. Every row shares one top/bottom boundary.
+ * This scoped selector outranks the old compact density rules, regardless
+ * of which order the CSS modules appear in the production build.
+ */
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid {
+  display: grid;
+  column-count: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "electrical autopilot antiice"
+    "hydraulic cabin landing";
+  grid-template-rows: auto auto;
+  align-items: stretch;
+  grid-auto-flow: row;
+  gap: 8px;
+}
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  break-inside: auto;
+}
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(1) { grid-area: electrical; }
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(2) { grid-area: hydraulic; }
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(3) { grid-area: autopilot; }
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(4) { grid-area: cabin; }
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(5) { grid-area: antiice; }
+.xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid > .xmc-system-card:nth-child(6) { grid-area: landing; }
+@media (max-width: 1199px) {
+  .xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "electrical autopilot"
+      "hydraulic cabin"
+      "antiice landing";
+  }
+}
+@media (max-width: 760px) {
+  .xmc-operations-merged.xmc-ops-compact .xmc-suite-page .xmc-systems-suite .xmc-systems-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "electrical"
+      "hydraulic"
+      "autopilot"
+      "cabin"
+      "antiice"
+      "landing";
+  }
+}
+/* XMC SYSTEM GRID CASCADE FIX END */

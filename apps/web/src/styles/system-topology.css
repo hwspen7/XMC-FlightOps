@@ -1,1 +1,99 @@
-.xmc-systems-suite{box-sizing:border-box;max-width:1280px;margin:28px auto;padding:24px;border-radius:14px;background:#0b1d2d;border:1px solid #27495f;color:#e5eff5;font-family:Inter,system-ui,Arial,sans-serif}.xmc-systems-suite>header>span{color:#66b7d9;letter-spacing:.14em;font-size:11px;font-weight:700}.xmc-systems-suite>header h2{margin:8px 0;font-size:22px}.xmc-systems-suite>header p{font-size:12px;color:#90aec0;margin:0}.xmc-systems-status{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:20px 0}.xmc-systems-status>div{background:#173149;padding:12px;border:1px solid #2b5066;border-radius:6px;display:grid;gap:8px}.xmc-systems-status span{font-size:9px;color:#8cb1c7;letter-spacing:.05em}.xmc-systems-status b{font-size:17px;font-variant-numeric:tabular-nums}.xmc-systems-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.xmc-system-card{background:#10273a;border:1px solid #31546a;border-radius:10px;padding:15px;min-width:0}.xmc-system-card h3{color:#e0edf6;font-size:12px;margin:0 0 5px;letter-spacing:.09em}.xmc-system-card>small{color:#87aac0;font-size:10px}.xmc-system-card svg{width:100%;height:auto;display:block;margin-top:12px}.xmc-system-rows{display:grid;margin-top:15px}.xmc-system-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #2a465b;color:#92b5c8;font-size:12px}.xmc-system-row>b{color:#dae9f2;font-variant-numeric:tabular-nums}.xmc-tech-note{font-size:10px;color:#779bb2;line-height:1.6}.xmc-event-panel{margin-top:12px}.xmc-event-legend{display:flex;flex-wrap:wrap;gap:18px;color:#9db9c9;font-size:10px}@media(max-width:750px){.xmc-systems-suite{padding:12px}.xmc-systems-status{grid-template-columns:repeat(2,minmax(0,1fr))}.xmc-systems-grid{grid-template-columns:1fr}}
+.xmc-systems-suite{
+  box-sizing:border-box;
+  max-width:none;
+  width:100%;
+  margin:20px 0 28px;
+  padding:18px;
+  border-radius:14px;
+  background:#0b1d2d;
+  border:1px solid #27495f;
+  color:#e5eff5;
+  font-family:Inter,system-ui,Arial,sans-serif;
+}
+.xmc-systems-suite>header>span{color:#66b7d9;letter-spacing:.14em;font-size:11px;font-weight:700}
+.xmc-systems-suite>header h2{margin:8px 0 6px;font-size:22px}
+.xmc-systems-suite>header p{font-size:12px;color:#90aec0;margin:0}
+
+.xmc-systems-status{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:6px;
+  margin:18px 0 10px;
+}
+.xmc-systems-status>div{
+  background:#173149;
+  padding:10px 12px;
+  border:1px solid #2b5066;
+  border-radius:6px;
+  display:grid;
+  gap:8px;
+  min-height:78px;
+}
+.xmc-systems-status span{font-size:9px;color:#8cb1c7;letter-spacing:.05em}
+.xmc-systems-status b{font-size:17px;font-variant-numeric:tabular-nums}
+
+/* Precision wide layout for the systems page.
+   Use a stable 3-column dashboard and keep the paired cards aligned in each row. */
+.xmc-systems-grid{
+  display:grid;
+  grid-template-columns:1.05fr 1.05fr 1.05fr;
+  grid-template-areas:
+    'electrical autopilot antiice'
+    'hydraulic cabin landing';
+  gap:6px;
+  align-items:stretch;
+}
+.xmc-systems-grid > .xmc-system-card:nth-child(1){grid-area:electrical}
+.xmc-systems-grid > .xmc-system-card:nth-child(2){grid-area:hydraulic}
+.xmc-systems-grid > .xmc-system-card:nth-child(3){grid-area:autopilot}
+.xmc-systems-grid > .xmc-system-card:nth-child(4){grid-area:cabin}
+.xmc-systems-grid > .xmc-system-card:nth-child(5){grid-area:antiice}
+.xmc-systems-grid > .xmc-system-card:nth-child(6){grid-area:landing}
+
+.xmc-system-card{
+  background:#10273a;
+  border:1px solid #31546a;
+  border-radius:10px;
+  padding:10px 12px;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+.xmc-system-card h3{color:#e0edf6;font-size:12px;margin:0 0 5px;letter-spacing:.09em}
+.xmc-system-card>small{color:#87aac0;font-size:10px;line-height:1.35}
+.xmc-system-card svg{width:100%;height:auto;display:block;margin-top:10px;flex:1 0 auto}
+.xmc-system-rows{display:grid;margin-top:12px;flex:1;align-content:start}
+.xmc-system-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #2a465b;color:#92b5c8;font-size:12px}
+.xmc-system-row:last-child{border-bottom:0}
+.xmc-system-row>b{color:#dae9f2;font-variant-numeric:tabular-nums}
+.xmc-tech-note{font-size:10px;color:#779bb2;line-height:1.55;margin-top:auto;padding-top:8px}
+.xmc-event-panel{margin-top:14px}
+.xmc-event-legend{display:flex;flex-wrap:wrap;gap:18px;color:#9db9c9;font-size:10px}
+
+/* Make the two instrument-style diagram cards breathe a bit more. */
+.xmc-systems-grid > .xmc-system-card:nth-child(1) svg,
+.xmc-systems-grid > .xmc-system-card:nth-child(2) svg{min-height:168px}
+
+/* Keep the second-row cards visually aligned with the tall hydraulic card. */
+.xmc-systems-grid > .xmc-system-card:nth-child(4),
+.xmc-systems-grid > .xmc-system-card:nth-child(6){min-height:208px}
+
+@media(max-width:1320px){
+  .xmc-systems-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      'electrical autopilot'
+      'hydraulic cabin'
+      'antiice landing';
+  }
+  .xmc-systems-status{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:750px){
+  .xmc-systems-suite{padding:12px}
+  .xmc-systems-status{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .xmc-systems-grid{grid-template-columns:1fr;grid-template-areas:none}
+  .xmc-systems-grid > .xmc-system-card{grid-area:auto;min-height:0}
+}

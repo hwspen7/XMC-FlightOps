@@ -10,7 +10,9 @@ describe('auxiliary controls', () => {
     expect(encodeCommand(COMMAND_PATHS['flaps-up']).toString('ascii')).toContain('CMND\0sim/flight_controls/flaps_up\0');
   });
   it('rejects non-owner actions and invalid throttle ratios', () => {
-    const simulator = { activate: vi.fn(), update: vi.fn(), deactivate: vi.fn(), throttle: vi.fn(() => true), action: vi.fn(() => true), status: vi.fn(() => ({ telemetry: { autothrottleOn: 0 } })) } as unknown as XPlaneService;
+    // An accepted throttle requires an online simulator. The service now
+    // deliberately fails closed when reachable is missing or false.
+    const simulator = { activate: vi.fn(), update: vi.fn(), deactivate: vi.fn(), throttle: vi.fn(() => true), action: vi.fn(() => true), status: vi.fn(() => ({ reachable: true, telemetry: { autothrottleOn: 0 } })) } as unknown as XPlaneService;
     const service = new ControlService(simulator);
     const owner = {};
     const observer = {};
@@ -20,6 +22,22 @@ describe('auxiliary controls', () => {
     expect(service.throttle(owner, 1.1)).toBe(false);
     expect(service.throttle(owner, 0.55)).toBe(true);
     expect(service.auxiliary(owner, 'spoilers-toggle')).toBe(true);
+  });
+  it('does not send throttle while offline or when autothrottle is engaged', () => {
+    const state = { reachable: false, telemetry: { autothrottleOn: 0 } };
+    const simulator = { activate: vi.fn(), throttle: vi.fn(() => true), status: vi.fn(() => state) } as unknown as XPlaneService;
+    const service = new ControlService(simulator);
+    const owner = {};
+    service.arm(owner);
+    expect(service.throttle(owner, 0.4)).toBe(false);
+    expect(simulator.throttle).not.toHaveBeenCalled();
+    state.reachable = true;
+    state.telemetry.autothrottleOn = 1;
+    expect(service.throttle(owner, 0.4)).toBe(false);
+    expect(simulator.throttle).not.toHaveBeenCalled();
+    state.telemetry.autothrottleOn = 0;
+    expect(service.throttle(owner, 0.4)).toBe(true);
+    expect(simulator.throttle).toHaveBeenCalledWith(0.4);
   });
   it('rejects unsafe reverse without native ground confirmation', () => {
     const sim = { activate: vi.fn(), deactivate: vi.fn(), pedal: vi.fn(() => true),

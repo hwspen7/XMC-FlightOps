@@ -1,0 +1,29 @@
+/* Prevent Safari/Chrome long-press selection in the flight-control surface.
+   Do not disable native editing or accessibility in the pairing/settings form. */
+.mobile-cockpit.fd-layout,
+.mobile-cockpit.fd-layout :not(input):not(textarea):not(select):not(option):not([contenteditable]):not([role='textbox']) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Explicitly restore the text editing behavior within pairing/settings fields. */
+.mobile-cockpit.fd-layout input,
+.mobile-cockpit.fd-layout textarea,
+.mobile-cockpit.fd-layout select,
+.mobile-cockpit.fd-layout [contenteditable],
+.mobile-cockpit.fd-layout [role='textbox'] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Motion sliders already use pointer capture; suppress viewport pan on them.
+   Do not set touch-action:none on the whole app or on input fields. */
+.mobile-cockpit.fd-layout .fd-lever-touch,
+.mobile-cockpit.fd-layout .fd-brake-pad,
+.mobile-cockpit.fd-layout .fd-ground-turn-button,
+.mobile-cockpit.fd-layout .fd-rudder-range {
+  touch-action: none;
+}
