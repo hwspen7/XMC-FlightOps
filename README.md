@@ -1,21 +1,50 @@
 <div align="center">
 
-# X-Plane Motion Controller
+# XMC FlightOps
 
-**A unified flight-simulation workspace for control, telemetry, and post-flight analysis.**
+### Integrated Flight Control & Operations Monitoring for X-Plane
 
-A native C++ integration, a real-time monitoring console, and a motion-aware mobile flight deck — built around X-Plane.
+**A full-stack flight-simulation platform connecting motion-based mobile flight control, a live desktop operations console, and a native C++ integration layer.**
 
-[![CI](https://img.shields.io/github/actions/workflow/status/hwspen7/xplane-motion-controller/checks.yml?branch=main&style=flat-square&label=CI)](https://github.com/hwspen7/xplane-motion-controller/actions/workflows/checks.yml)
-![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white)
-![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=flat-square&logo=nestjs&logoColor=white)
-![X-Plane](https://img.shields.io/badge/Simulator-X--Plane%2012-14364C?style=flat-square)
-[![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-F2B134?style=flat-square)](LICENSE)
+Real-time flight instrumentation · Aircraft systems diagnostics · Telemetry analytics · Flight recording and replay · Offline debrief
+
+<p>
+  <a href="https://github.com/hwspen7/xplane-motion-controller/actions/workflows/checks.yml"><img alt="CI — GitHub Actions" src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License — PolyForm Noncommercial 1.0.0" src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-8250DF?style=flat-square"></a>
+  <img alt="Purpose — Flight Simulation" src="https://img.shields.io/badge/Purpose-Flight%20Simulation-1E607B?style=flat-square">
+</p>
+
+<br>
+
+<sub><strong>FLIGHT SIMULATION & NATIVE SYSTEMS</strong></sub>
+<p>
+  <img alt="X-Plane 12" src="https://img.shields.io/badge/X--Plane-12-175379?style=flat-square">
+  <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white">
+  <img alt="X-Plane SDK" src="https://img.shields.io/badge/X--Plane-SDK-24506A?style=flat-square">
+  <img alt="CMake" src="https://img.shields.io/badge/CMake-Build-064F8C?style=flat-square&logo=cmake&logoColor=white">
+  <img alt="UDP" src="https://img.shields.io/badge/Transport-UDP-405B76?style=flat-square">
+</p>
+
+<sub><strong>DESKTOP, MOBILE & TELEMETRY</strong></sub>
+<p>
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white">
+  <img alt="TypeScript 5" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white">
+  <img alt="WebSocket" src="https://img.shields.io/badge/Realtime-WebSocket-1D7690?style=flat-square">
+  <img alt="Device Motion" src="https://img.shields.io/badge/Mobile-Device%20Motion-7358BA?style=flat-square">
+</p>
+
+<sub><strong>BACKEND, ANALYTICS & ENGINEERING</strong></sub>
+<p>
+  <img alt="NestJS 11" src="https://img.shields.io/badge/NestJS-11-E0234E?style=flat-square&logo=nestjs&logoColor=white">
+  <img alt="Node.js 24" src="https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-Reports-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-Workspace-F69220?style=flat-square&logo=pnpm&logoColor=white">
+  <img alt="Vitest" src="https://img.shields.io/badge/Vitest-Testing-6E9F18?style=flat-square&logo=vitest&logoColor=white">
+  <img alt="HTTPS" src="https://img.shields.io/badge/Mobile-HTTPS-13856E?style=flat-square">
+</p>
 
 </div>
-
 ## Flight operations, in one view
 
 ![Live Flight Operations Overview](.github/assets/flight-operations-overview.webp)
