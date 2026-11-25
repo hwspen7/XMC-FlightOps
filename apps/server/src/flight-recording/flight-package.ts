@@ -18,6 +18,7 @@ export class FlightPackageRecorder {
   private failed = false;
   private retryAt = 0;
   private preflight: {at:number; row:string}[] = [];
+  private preflightChars=0;
   private previousAircraft: string | null = null;
   private lastSequence:number|null=null;
   private lastSourceUs:number|null=null;
@@ -36,12 +37,12 @@ export class FlightPackageRecorder {
     const sequence=t.nativeSampleSequence??null,sourceUs=t.nativeSampleTimeUs??null;
     if(sequence!==null&&sourceUs!==null&&this.lastSequence!==null&&this.lastSourceUs!==null){
       if(sequence===this.lastSequence&&sourceUs===this.lastSourceUs)return;
-      if(sequence<=this.lastSequence||sourceUs<=this.lastSourceUs){this.finish('native-clock-reset');this.preflight=[];}
+      if(sequence<=this.lastSequence||sourceUs<=this.lastSourceUs){this.finish('native-clock-reset');this.preflight=[];this.preflightChars=0;}
       else if(this.stream)this.lostPackets+=Math.max(0,sequence-this.lastSequence-1);
     }else if(t.receivedAt===this.lastAt)return;
     this.lastSequence=sequence;this.lastSourceUs=sourceUs;
-    if (t.receivedAt < this.lastAt-1000) { this.finish('clock-reset'); this.preflight = []; this.lastAt=-1; }
-    if (this.previousAircraft && t.aircraftIcao && t.aircraftIcao !== this.previousAircraft) { this.finish('aircraft-changed'); this.preflight = []; }
+    if (t.receivedAt < this.lastAt-1000) { this.finish('clock-reset'); this.preflight = []; this.preflightChars=0; this.lastAt=-1; }
+    if (this.previousAircraft && t.aircraftIcao && t.aircraftIcao !== this.previousAircraft) { this.finish('aircraft-changed'); this.preflight = []; this.preflightChars=0; }
     this.previousAircraft = t.aircraftIcao ?? this.previousAircraft;
     // Archive cursor uses monotonically ordered receive-time milliseconds;
     // original receive and source clocks remain in telemetry.
@@ -53,8 +54,8 @@ export class FlightPackageRecorder {
       if (now < this.retryAt) return;
       if (!(t.onGround === 0 || (t.groundSpeedKnots ?? 0) >= 2)) {
         // Bounded pre-roll retains recent cockpit preparation without endless idle files.
-        this.preflight.push({at:this.lastAt,row:JSON.stringify(row)});
-        while(this.preflight.length > 12000 || (this.preflight[0] && t.receivedAt - this.preflight[0].at > 300_000)) this.preflight.shift();
+        const encoded=JSON.stringify(row);this.preflight.push({at:this.lastAt,row:encoded});this.preflightChars+=encoded.length;
+        while(this.preflight.length > 12000 || this.preflightChars>8*1024*1024 || (this.preflight[0] && t.receivedAt - this.preflight[0].at > 300_000)){const old=this.preflight.shift();if(old)this.preflightChars-=old.row.length;}
         return;
       }
       try {
@@ -72,7 +73,7 @@ export class FlightPackageRecorder {
           source: sim.transport ?? 'udp', aircraftIcao: t.aircraftIcao, clock: 'ordered receive epoch ms; native monotonic us retained', integrity:'crc32-jsonl',
           startReason: t.onGround === 0 ? 'airborne-observed' : 'ground-movement', preflightSamples: this.preflight.length });
         for (const prior of this.preflight) { this.writeLine(prior.row); this.count++; }
-        this.preflight = [];
+        this.preflight = []; this.preflightChars=0;
       } catch (err) { this.log('Cannot create flight archive: ' + String(err)); this.retryAt = now + 30_000; return; }
     }
     if (this.blocked) { this.finish('write-backpressure'); this.retryAt = now + 30_000; return; }

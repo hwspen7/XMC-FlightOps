@@ -105,6 +105,7 @@ export function spectrum(s: readonly FlightSample[], key: 'nativeCommandRollRati
 export function observedLag(s: readonly FlightSample[], axis:'Roll'|'Pitch') {
   const xk=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
   const yk=axis==='Roll'?'rollRateDegreesPerSecond':'pitchRateDegreesPerSecond';
+  s=s.slice(-512);
   if(s.length<40 || s.some(p=>!finite(p.telemetry[xk])||!finite(p.telemetry[yk])||p.telemetry.autopilotServosOn!==0))return null;
   const dt=(s[s.length-1].at-s[0].at)/(s.length-1);
   if(dt<=0||s.some((p,i)=>i>0&&Math.abs(p.at-s[i-1].at-dt)>dt*.2))return null;
@@ -139,6 +140,7 @@ export function runwayPosition(r:Runway,t:FlightTelemetry) {
 export function stepTracking(s:readonly FlightSample[],axis:'Roll'|'Pitch') {
   const ck=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
   const rk=axis==='Roll'?'simJoystickRollRatio':'simJoystickPitchRatio';
+  s=s.slice(-1024);
   if(s.length<30)return null;
   for(let i=s.length-21;i>=8;i--){
     const before=s.slice(i-8,i),after=s.slice(i,i+21),all=[...before,...after];
@@ -254,11 +256,12 @@ export async function importAirportRunways(file:Blob):Promise<AirportRunway[]>{
   if(!result.length)throw Error('No supported land runways in apt.dat');return result;
 }
 export function matchRunway(runways:readonly AirportRunway[],t:FlightTelemetry){
-  if(!finite(t.headingDegrees))return null;
+  const aircraftHeading=t.headingDegrees;
+  if(!finite(aircraftHeading))return null;
   const candidates=runways.flatMap(r=>{const p=runwayPosition(r,t);if(!p||p.along < -100||p.along > p.length+100||Math.abs(p.right)>r.widthM/2+15)return [];
     const v=displacement({latitudeDegrees:r.thresholdLat,longitudeDegrees:r.thresholdLon} as FlightTelemetry,{latitudeDegrees:r.endLat,longitudeDegrees:r.endLon} as FlightTelemetry);
     if(!v)return [];const heading=Math.atan2(v[0],v[1])*180/Math.PI;
-    const error=Math.abs(((t.headingDegrees-heading+540)%360)-180);if(error>35)return [];
+    const error=Math.abs(((aircraftHeading-heading+540)%360)-180);if(error>35)return [];
     return [{runway:r,score:Math.abs(p.right)+error*2+Math.max(0,-p.along,p.along-p.length)}];}).sort((a,b)=>a.score-b.score);
   return candidates.length&&(!candidates[1]||candidates[1].score-candidates[0].score>8)?candidates[0].runway:null;
 }
@@ -281,4 +284,39 @@ export function sourceTimedWindow(s:readonly FlightSample[]):FlightSample[]{
     (i>0&&((p.telemetry.nativeSampleSequence as number)!==(s[i-1].telemetry.nativeSampleSequence as number)+1||
     (p.telemetry.nativeSampleTimeUs as number)<=(s[i-1].telemetry.nativeSampleTimeUs as number)))))return [];
   return s.map(p=>({...p,at:((p.telemetry.nativeSampleTimeUs as number)-first)/1000}));
+}
+
+// Runway roll is restricted to contiguous in-bounds aircraft reference samples.
+// No extrapolation across a gap, runway turnoff or missing contact state.
+export function runwayRoll(s:readonly FlightSample[],event:FlightEvent,r:Runway){
+  const i=event.index,p=runwayPosition(r,s[i].telemetry);
+  if(!p?.inside)return null;
+  let start=i,end=i;
+  const valid=(a:number,b:number)=>{const q=runwayPosition(r,s[a].telemetry);return s[a].telemetry.onGround===1&&q?.inside&&Math.abs(s[a].at-s[b].at)<=1000;};
+  if(event.kind==='Liftoff'){while(start>0&&valid(start-1,start))start--;}
+  else {while(end+1<s.length&&valid(end+1,end)){end++;if(finite(s[end].telemetry.groundSpeedKnots)&&s[end].telemetry.groundSpeedKnots!<2)break;}}
+  if(start===end)return null;
+  const a=runwayPosition(r,s[start].telemetry),b=runwayPosition(r,s[end].telemetry);
+  if(!a||!b||b.along<a.along)return null;
+  const traveled=distance(s,start,end);if(traveled===null)return null;
+  return {start,end,stationChangeM:b.along-a.along,pathM:traveled,
+    durationS:(s[end].at-s[start].at)/1000,startsAtArchiveBoundary:start===0,endsAtArchiveBoundary:end===s.length-1,
+    stopObserved:event.kind==='Touchdown'&&finite(s[end].telemetry.groundSpeedKnots)&&s[end].telemetry.groundSpeedKnots!<2};
+}
+export function contactSequence(s:readonly FlightSample[],events:readonly FlightEvent[]){
+  return events.map((e,i)=>{
+    const prev=events[i-1],next=events[i+1];
+    const details=contactDetails(s,e);
+    const near=(a:FlightEvent,b:FlightEvent)=>s[b.index].at-s[a.index].at<=5000&&s.slice(a.index,b.index+1).every((p,j,arr)=>j===0||p.at-arr[j-1].at<=1000);
+    const bounce=e.kind==='Liftoff'&&prev?.kind==='Touchdown'&&next?.kind==='Touchdown'&&near(prev,e)&&near(e,next)&&
+      s.slice(e.index,next.index+1).every(p=>finite(p.telemetry.aglFeet)&&p.telemetry.aglFeet<30);
+    return {...e,...details,label:bounce?'Possible bounce':e.kind};
+  });
+}
+export function signalQuality(s:readonly FlightSample[],axis:'Roll'|'Pitch'){
+  const key=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
+  let n=0,squares=0,travel=0,maxRate=0,active=0,span=0,saturated=0;
+  for(let i=0;i<s.length;i++){const x=s[i].telemetry[key];if(!finite(x))continue;n++;squares+=x*x;if(Math.abs(x)>=.98)saturated++;
+    if(i){const prev=s[i-1].telemetry[key],dt=(s[i].at-s[i-1].at)/1000;if(finite(prev)&&dt>0&&dt<=1){const change=Math.abs(x-prev);travel+=change;span+=dt;maxRate=Math.max(maxRate,change/dt);if(Math.abs(x)>.05)active+=dt;}}}
+  return {rms:n?Math.sqrt(squares/n):null,travel,peakRate:span?maxRate:null,activeFraction:span?active/span:null,saturationFraction:n?saturated/n:null};
 }

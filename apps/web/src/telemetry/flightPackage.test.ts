@@ -27,3 +27,27 @@ describe('archive quality and airport geometry',()=>{
  it('reports gaps without inventing coverage',()=>{expect(dataQuality([sample(100,0),sample(200,0),sample(3000,0)]).gaps).toBe(1);});
  it('streams archive text',async()=>{const rows=[{type:'manifest',schema:'xmc.flight-package.v1'},sample(100,0),{type:'end',samples:1,reason:'test'}];const a=await importFlightFile(new Blob([rows.map(x=>JSON.stringify(x)).join('\n')]));expect(a.samples).toHaveLength(1);expect(a.complete).toBe(true);});
 });
+import { archiveCrcHex, archiveCrcUpdate } from '@xplane/shared';
+import { sourceTimedWindow, runwayRoll, signalQuality } from './flightPackage';
+describe('precision and integrity',()=>{
+ it('verifies CRC32 standard vector and rejects modified archives',()=>{
+  expect(archiveCrcHex(archiveCrcUpdate(0xffffffff,'123456789'))).toBe('cbf43926');
+  const h=JSON.stringify({type:'manifest',schema:'xmc.flight-package.v1',integrity:'crc32-jsonl'});
+  const p=JSON.stringify(sample(100,1)),crc=archiveCrcHex(archiveCrcUpdate(0xffffffff,h+'\n'+p+'\n'));
+  const footer=JSON.stringify({type:'end',samples:1,reason:'test',crc32:crc});
+  expect(parseFlightPackage([h,p,footer].join('\n')).integrity).toBe('verified');
+  expect(()=>parseFlightPackage([h,p.replace('"onGround":1','"onGround":0'),footer].join('\n'))).toThrow('checksum');
+ });
+ it('uses native clock and refuses a missing native packet',()=>{
+  const s=[1,2,3].map(i=>{const p=sample(i*100,0);return {...p,telemetry:{...p.telemetry,nativeSampleSequence:i,nativeSampleTimeUs:100000+i*25000}};});
+  expect(sourceTimedWindow(s).map(p=>p.at)).toEqual([0,25,50]);expect(sourceTimedWindow([s[0],s[2]])).toEqual([]);
+ });
+ it('computes in-bounds runway travel without taxi outside the runway',()=>{
+  const r={thresholdLat:0,thresholdLon:0,endLat:0,endLon:.02,widthM:45};
+  const s=[sample(0,1,-.001),sample(100,1,.001),sample(200,1,.002),sample(300,0,.003)];
+  expect(runwayRoll(s,flightEvents(s)[0],r)?.stationChangeM).toBeCloseTo(222.39,1);
+ });
+ it('reports input saturation and activity from measured samples',()=>{
+  expect(signalQuality([sample(100,0),sample(200,0)],'Roll').rms).toBeCloseTo(.2);
+ });
+});
