@@ -19,3 +19,11 @@ describe('control engineering guards',()=>{
  });
  it('does not report rotation on missing pitch rate',()=>{expect(rotationCandidate([sample(0,1),sample(100,1),sample(200,0)],2)).toBeNull();});
 });
+
+import { parseRunwayRow, matchRunway, contactDetails, dataQuality, importFlightFile } from './flightPackage';
+describe('archive quality and airport geometry',()=>{
+ it('parses reciprocal ends and displaced thresholds',()=>{const rows=parseRunwayRow('100 45 1 0 0.25 1 1 0 36 0 0 200 0 1 0 0 0 18 .02 0 100 0 1 0 0 0','TEST');expect(rows).toHaveLength(2);expect(rows[0].displacedM).toBe(200);expect(matchRunway(rows,{latitudeDegrees:.01,longitudeDegrees:0,headingDegrees:0} as FlightTelemetry)?.ident).toBe('36');});
+ it('classifies a short reverted contact as transient',()=>{const s=[sample(0,0),sample(100,1),sample(200,1),sample(300,0)];expect(contactDetails(s,flightEvents(s)[0]).classification).toBe('transient');});
+ it('reports gaps without inventing coverage',()=>{expect(dataQuality([sample(100,0),sample(200,0),sample(3000,0)]).gaps).toBe(1);});
+ it('streams archive text',async()=>{const rows=[{type:'manifest',schema:'xmc.flight-package.v1'},sample(100,0),{type:'end',samples:1,reason:'test'}];const a=await importFlightFile(new Blob([rows.map(x=>JSON.stringify(x)).join('\n')]));expect(a.samples).toHaveLength(1);expect(a.complete).toBe(true);});
+});

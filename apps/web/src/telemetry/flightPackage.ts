@@ -4,17 +4,23 @@ export interface FlightSample { type: 'sample'; at: number; telemetry: FlightTel
 export interface FlightPackage { aircraft: string; source: string; samples: FlightSample[]; complete: boolean; reason: string; }
 export const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 export function parseFlightPackage(raw: string): FlightPackage {
-  const lines = raw.split(/\r?\n/).filter(l => l.trim());
-  const header = JSON.parse(lines.shift() ?? '{}');
+  return parseFlightLines(raw.split(/\r?\n/));
+}
+function parseFlightLines(lines:Iterable<string>):FlightPackage {
+  const iterator=lines[Symbol.iterator]();
+  let first=iterator.next();while(!first.done&&!first.value.trim())first=iterator.next();
+  const header = JSON.parse(first.done?'{}':first.value);
   if (header.type !== 'manifest' || header.schema !== 'xmc.flight-package.v1') throw Error('Unsupported flight package');
   const samples: FlightSample[] = [];
   let end: { samples: number; reason: string } | null = null;
-  for (const line of lines) {
+  for (let next=iterator.next();!next.done;next=iterator.next()) {
+    const line=next.value;if(!line.trim())continue;
     const p = JSON.parse(line);
+    if(!p||typeof p!=='object')throw Error('Invalid archive row');
     if (end) throw Error('Unexpected data after archive footer');
-    if (p.type === 'end') { end = p; continue; }
+    if (p.type === 'end') { if(!Number.isSafeInteger(p.samples)||typeof p.reason!=='string')throw Error('Invalid footer');end = p; continue; }
     if (p.type !== 'sample' || !Number.isSafeInteger(p.at) || !p.telemetry || !p.control ||
-        typeof p.telemetry !== 'object' || typeof p.control !== 'object' ||
+        typeof p.telemetry !== 'object' || typeof p.control !== 'object' || Array.isArray(p.telemetry)||Array.isArray(p.control)||p.at<0 ||
         (samples.length && p.at <= samples[samples.length - 1].at)) throw Error('Invalid or unordered sample');
     samples.push(p);
   }
@@ -25,7 +31,7 @@ export function parseFlightPackage(raw: string): FlightPackage {
 
 const rad = Math.PI / 180;
 export function displacement(a: FlightTelemetry, b: FlightTelemetry): [number, number] | null {
-  if (!finite(a.latitudeDegrees) || !finite(a.longitudeDegrees) || !finite(b.latitudeDegrees) || !finite(b.longitudeDegrees)) return null;
+  if (!finite(a.latitudeDegrees) || !finite(a.longitudeDegrees) || !finite(b.latitudeDegrees) || !finite(b.longitudeDegrees) || Math.abs(a.latitudeDegrees)>90 || Math.abs(b.latitudeDegrees)>90 || Math.abs(a.longitudeDegrees)>180 || Math.abs(b.longitudeDegrees)>180) return null;
   const dlon = ((b.longitudeDegrees - a.longitudeDegrees + 540) % 360) - 180;
   const dlat = (b.latitudeDegrees - a.latitudeDegrees) * rad;
   const l = dlon * rad;
@@ -192,4 +198,71 @@ export function rotationCandidate(s:readonly FlightSample[],index:number):number
     if(finite(prior)&&prior<1 && i+1<index && (s[i+1].telemetry.pitchRateDegreesPerSecond??0)>=1)return i;
   }
   return null;
+}
+
+// Stream text without a second complete raw string in memory. Retain full rows
+// for replay and expose explicit memory limits rather than silently decimating.
+export async function* fileLines(file:Blob):AsyncGenerator<string>{
+  const reader=file.stream().pipeThrough(new TextDecoderStream()).getReader();
+  let tail='';
+  try{while(true){const {done,value}=await reader.read();if(done)break;const parts=(tail+value).split('\n');tail=parts.pop()??'';if(tail.length>1_000_000)throw Error('Archive row too large');for(const line of parts)yield line.replace(/\r$/,'');}if(tail.trim())yield tail;}finally{reader.releaseLock();}
+}
+export async function importFlightFile(file:Blob):Promise<FlightPackage>{
+  let header:Record<string,unknown>|null=null,end:{samples:number;reason:string}|null=null;
+  const samples:FlightSample[]=[];
+  for await(const line of fileLines(file)){
+    if(!line.trim())continue;
+    const p=JSON.parse(line);
+    if(!p||typeof p!=='object'||Array.isArray(p))throw Error('Invalid archive row');
+    if(!header){if(p.type!=='manifest'||p.schema!=='xmc.flight-package.v1')throw Error('Unsupported flight package');header=p;continue;}
+    if(end)throw Error('Unexpected data after footer');
+    if(p.type==='end'){if(!Number.isSafeInteger(p.samples)||typeof p.reason!=='string')throw Error('Invalid footer');end=p;continue;}
+    if(p.type!=='sample'||!Number.isSafeInteger(p.at)||p.at<0||!p.telemetry||typeof p.telemetry!=='object'||Array.isArray(p.telemetry)||!p.control||typeof p.control!=='object'||Array.isArray(p.control)||(samples.length>0&&p.at<=samples[samples.length-1].at))throw Error('Invalid or unordered sample');
+    if(samples.length>=500_000)throw Error('Replay memory limit: 500,000 samples. Original archive is intact.');
+    samples.push(p);
+  }
+  if(!header||!samples.length||(end&&end.samples!==samples.length))throw Error('Missing samples or count mismatch');
+  return {aircraft:typeof header.aircraftIcao==='string'?header.aircraftIcao:'UNKNOWN',source:String(header.source??'unknown'),samples,complete:Boolean(end),reason:end?.reason??'unfinalized'};
+}
+export function dataQuality(s:readonly FlightSample[]){
+  let gaps=0,maxGap=0,missingPosition=0,missingControl=0,covered=0;
+  for(let i=0;i<s.length;i++){
+    const t=s[i].telemetry;
+    if(!finite(t.latitudeDegrees)||!finite(t.longitudeDegrees))missingPosition++;
+    if(!finite(t.nativeCommandRollRatio)||!finite(t.nativeCommandPitchRatio))missingControl++;
+    if(i){const dt=s[i].at-s[i-1].at;maxGap=Math.max(maxGap,dt);if(dt>1000)gaps++;else covered+=dt;}
+  }
+  return {gaps,maxGap,missingPosition,missingControl,covered,span:s.length?s[s.length-1].at-s[0].at:0};
+}
+export interface AirportRunway extends Runway { airport:string; ident:string; displacedM:number; }
+export function parseRunwayRow(line:string,airport:string):AirportRunway[]{
+  const p=line.trim().split(/\s+/);
+  if(p[0]!=='100'||p.length<26||!airport)return [];
+  const widthM=Number(p[1]),latA=Number(p[9]),lonA=Number(p[10]),latB=Number(p[18]),lonB=Number(p[19]);
+  const make=(ident:string,thresholdLat:number,thresholdLon:number,endLat:number,endLon:number,displacedM:number):AirportRunway=>({airport,ident,widthM,thresholdLat,thresholdLon,endLat,endLon,displacedM});
+  const rows=[make(p[8],latA,lonA,latB,lonB,Number(p[11])),make(p[17],latB,lonB,latA,lonA,Number(p[20]))];
+  return rows.filter(r=>{const rp=runwayPosition(r,{latitudeDegrees:r.thresholdLat,longitudeDegrees:r.thresholdLon} as FlightTelemetry);return rp&&finite(r.displacedM)&&r.displacedM>=0&&r.displacedM<rp.length;});
+}
+export async function importAirportRunways(file:Blob):Promise<AirportRunway[]>{
+  const result:AirportRunway[]=[];let airport='';
+  for await(const line of fileLines(file)){const p=line.trim().split(/\s+/,6);if(['1','16','17'].includes(p[0]))airport=p[0]==='1'?(p[4]??''):'';if(p[0]==='100')result.push(...parseRunwayRow(line,airport));}
+  if(!result.length)throw Error('No supported land runways in apt.dat');return result;
+}
+export function matchRunway(runways:readonly AirportRunway[],t:FlightTelemetry){
+  if(!finite(t.headingDegrees))return null;
+  const candidates=runways.flatMap(r=>{const p=runwayPosition(r,t);if(!p||p.along < -100||p.along > p.length+100||Math.abs(p.right)>r.widthM/2+15)return [];
+    const v=displacement({latitudeDegrees:r.thresholdLat,longitudeDegrees:r.thresholdLon} as FlightTelemetry,{latitudeDegrees:r.endLat,longitudeDegrees:r.endLon} as FlightTelemetry);
+    if(!v)return [];const heading=Math.atan2(v[0],v[1])*180/Math.PI;
+    const error=Math.abs(((t.headingDegrees-heading+540)%360)-180);if(error>35)return [];
+    return [{runway:r,score:Math.abs(p.right)+error*2+Math.max(0,-p.along,p.along-p.length)}];}).sort((a,b)=>a.score-b.score);
+  return candidates.length&&(!candidates[1]||candidates[1].score-candidates[0].score>8)?candidates[0].runway:null;
+}
+// Keep transient contact events separately; no fictitious wheel-level data.
+export function contactDetails(s:readonly FlightSample[],event:FlightEvent){
+  const i=event.index,ground=event.kind==='Touchdown'?1:0;let end=i;
+  while(end+1<s.length&&s[end+1].at-s[end].at<=1000&&s[end+1].telemetry.onGround===ground&&s[end].at-s[i].at<3000)end++;
+  const duration=s[end].at-s[i].at;
+  const next=s[end+1],reverted=next&&next.at-s[end].at<=1000&&next.telemetry.onGround===1-ground;
+  return {duration,classification:duration>=1000?'sustained':reverted?'transient':'unconfirmed',
+    peakG:event.kind==='Touchdown'?s.slice(i,end+1).reduce<number|null>((m,p)=>finite(p.telemetry.normalLoadG)?Math.max(m??-Infinity,p.telemetry.normalLoadG):m,null):null};
 }
