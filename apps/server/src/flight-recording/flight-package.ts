@@ -1,4 +1,6 @@
-import { createWriteStream, mkdirSync, renameSync, type WriteStream } from 'node:fs';
+import { createReadStream, createWriteStream, mkdirSync, renameSync, unlinkSync, type WriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
 import { resolve } from 'node:path';
 import { settings } from '../configuration/settings';
 import { randomUUID } from 'node:crypto';
@@ -24,12 +26,21 @@ export class FlightPackageRecorder {
   private lastSourceUs:number|null=null;
   private crc=0xffffffff;
   private lostPackets=0;
+  private pausedPackets=0;
+  private wasPaused=false;
   constructor(private readonly directory = resolve(settings.projectRoot, process.env.XMC_FLIGHT_ARCHIVE_DIR || 'flight-archives'),
-              private readonly log: (message: string) => void = console.warn) {}
+              private readonly log: (message: string) => void = console.warn,
+              private readonly gzip = process.env.XMC_FLIGHT_ARCHIVE_GZIP !== 'false') {}
 
   capture(sim: SimulatorStatus, control: ControlMonitor, now = Date.now()): void {
     const t = sim.telemetry;
-    if (!sim.reachable || !sim.telemetryFresh || sim.simPaused === true || !t || t.receivedAt === null) {
+    if(sim.reachable&&sim.telemetryFresh&&sim.simPaused===true&&t){
+      this.lastFresh=now;this.wasPaused=true;
+      const seq=t.nativeSampleSequence??null,src=t.nativeSampleTimeUs??null;
+      if(this.stream&&seq!==null&&seq!==this.lastSequence)this.pausedPackets++;
+      this.lastSequence=seq;this.lastSourceUs=src;return;
+    }
+    if (!sim.reachable || !sim.telemetryFresh || !t || t.receivedAt === null) {
       if (this.stream && sim.simPaused !== true && now - this.lastFresh > 120_000) this.finish('telemetry-lost');
       return;
     }
@@ -38,9 +49,9 @@ export class FlightPackageRecorder {
     if(sequence!==null&&sourceUs!==null&&this.lastSequence!==null&&this.lastSourceUs!==null){
       if(sequence===this.lastSequence&&sourceUs===this.lastSourceUs)return;
       if(sequence<=this.lastSequence||sourceUs<=this.lastSourceUs){this.finish('native-clock-reset');this.preflight=[];this.preflightChars=0;}
-      else if(this.stream)this.lostPackets+=Math.max(0,sequence-this.lastSequence-1);
+      else if(this.stream&&!this.wasPaused)this.lostPackets+=Math.max(0,sequence-this.lastSequence-1);
     }else if(t.receivedAt===this.lastAt)return;
-    this.lastSequence=sequence;this.lastSourceUs=sourceUs;
+    this.wasPaused=false;this.lastSequence=sequence;this.lastSourceUs=sourceUs;
     if (t.receivedAt < this.lastAt-1000) { this.finish('clock-reset'); this.preflight = []; this.preflightChars=0; this.lastAt=-1; }
     if (this.previousAircraft && t.aircraftIcao && t.aircraftIcao !== this.previousAircraft) { this.finish('aircraft-changed'); this.preflight = []; this.preflightChars=0; }
     this.previousAircraft = t.aircraftIcao ?? this.previousAircraft;
@@ -63,7 +74,7 @@ export class FlightPackageRecorder {
         this.path = resolve(this.directory, new Date(now).toISOString().replace(/[:.]/g, '-') + '-' + randomUUID() + '.xmc.jsonl.partial');
         const stream = createWriteStream(this.path, { flags: 'wx', highWaterMark: 32*1024*1024 });
         this.stream = stream;
-        this.failed = false; this.blocked = false; this.count = 0; this.crc=0xffffffff; this.lostPackets=0; this.airborne = false; this.stoppedAt = null;
+        this.failed = false; this.blocked = false; this.count = 0; this.crc=0xffffffff; this.lostPackets=0; this.pausedPackets=0; this.airborne = false; this.stoppedAt = null;
         stream.on('error', err => {
           this.log('Flight archive write error: ' + err.message);
           if (this.stream === stream) { this.failed = true; this.stream = null; this.retryAt = Date.now() + 30_000; }
@@ -97,6 +108,16 @@ export class FlightPackageRecorder {
     if(this.stream&&!this.stream.write(bytes))this.blocked=true;
   }
 
+  // Retain the original until the compressed stream has closed successfully.
+  // No recording data is discarded if compression or final rename fails.
+  private async compress(path:string):Promise<void>{
+    const pending=path+'.gz.partial',final=path+'.gz';
+    try{
+      await pipeline(createReadStream(path),createGzip({level:3}),createWriteStream(pending,{flags:'wx'}));
+      renameSync(pending,final);unlinkSync(path);this.log('Compressed flight package saved: '+final);
+    }catch(err){this.log('Flight compression failed; raw archive retained: '+String(err));try{unlinkSync(pending);}catch{/* Preserve original. */}}
+  }
+
   finish(reason = 'server-shutdown'): void {
     const stream = this.stream;
     if (!stream) return;
@@ -104,9 +125,9 @@ export class FlightPackageRecorder {
     this.stream = null;
     stream.once('close', () => {
       if (failed || stream.errored) return;
-      try { renameSync(path, path.slice(0, -'.partial'.length)); this.log('Flight package saved: ' + path.slice(0, -'.partial'.length)); }
+      try { const final=path.slice(0, -'.partial'.length);renameSync(path,final);this.log('Flight package saved: '+final);if(this.gzip)void this.compress(final); }
       catch (err) { this.log('Flight archive finalization failed: ' + String(err)); }
     });
-    stream.end(JSON.stringify({ type: 'end', endedAt: Date.now(), samples: this.count, reason, nativeMissingPackets:this.lostPackets, crc32:archiveCrcHex(this.crc) }) + '\n');
+    stream.end(JSON.stringify({ type: 'end', endedAt: Date.now(), samples: this.count, reason, nativeMissingPackets:this.lostPackets, intentionallySkippedPausedPackets:this.pausedPackets, crc32:archiveCrcHex(this.crc) }) + '\n');
   }
 }

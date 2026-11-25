@@ -56,3 +56,14 @@ it('streams only a requested time interval while validating total count',async()
  const a=await importFlightFile(new Blob([rows.map(x=>JSON.stringify(x)).join('\n')]),{startMinutes:1,durationMinutes:.5});
  expect(a.samples.map(p=>p.at)).toEqual([61000]);expect(a.totalSamples).toBe(3);expect(a.segment).toBe(true);
 });
+
+it('measures a sustained known readback step with 10% overshoot',()=>{
+ const s=Array.from({length:40},(_,i)=>{const p=sample(i*50,0);const x=i<12?0:.5,y=i<12?0:i===12?.2:i===13?.55:.5;return {...p,telemetry:{...p.telemetry,nativeCommandRollRatio:x,simJoystickRollRatio:y,autopilotServosOn:0}};});
+ const result=stepTracking(s,'Roll');expect(result).not.toBeNull();expect(result?.overshootPercent).toBeCloseTo(10);expect(result?.steadyError).toBeCloseTo(0);expect(result?.riseMs).toBe(50);expect(result?.settlingMs).toBe(100);
+});
+it('reports source-clock event bracket independent of receive jitter',()=>{
+ const a=sample(100,1),b=sample(230,0);
+ a.telemetry.nativeSampleTimeUs=100000;a.telemetry.nativeSampleSequence=1;
+ b.telemetry.nativeSampleTimeUs=125000;b.telemetry.nativeSampleSequence=2;
+ expect(flightEvents([a,b])[0].bracketMs).toBe(25);
+});

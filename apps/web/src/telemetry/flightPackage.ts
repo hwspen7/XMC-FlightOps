@@ -56,8 +56,11 @@ export function flightEvents(s: readonly FlightSample[]): FlightEvent[] {
   const events: FlightEvent[] = [];
   for (let i=1;i<s.length;i++) {
     const a=s[i-1], b=s[i], dt=b.at-a.at;
+    const sourceA=a.telemetry.nativeSampleTimeUs,sourceB=b.telemetry.nativeSampleTimeUs;
+    const seqA=a.telemetry.nativeSampleSequence,seqB=b.telemetry.nativeSampleSequence;
+    const bracket=finite(sourceA)&&finite(sourceB)&&finite(seqA)&&finite(seqB)&&seqB===seqA+1&&sourceB>sourceA?(sourceB-sourceA)/1000:dt;
     if (dt<=0 || dt>1000 || (a.telemetry.onGround!==0 && a.telemetry.onGround!==1) || (b.telemetry.onGround!==0 && b.telemetry.onGround!==1)) continue;
-    if (a.telemetry.onGround!==b.telemetry.onGround) events.push({index:i,kind:b.telemetry.onGround===1?'Touchdown':'Liftoff',bracketMs:dt});
+    if (a.telemetry.onGround!==b.telemetry.onGround) events.push({index:i,kind:b.telemetry.onGround===1?'Touchdown':'Liftoff',bracketMs:bracket});
   }
   return events;
 }
@@ -66,7 +69,7 @@ export function distance(s: readonly FlightSample[], start: number, end: number)
   let total=0;
   for(let i=start+1;i<=end;i++){
     const d=displacement(s[i-1].telemetry,s[i].telemetry);
-    if (!d || s[i].at-s[i-1].at>1000) return null;
+    if (!d || s[i].at-s[i-1].at>1000||s[i].at<=s[i-1].at) return null;
     total+=Math.hypot(...d);
   }
   return total;
