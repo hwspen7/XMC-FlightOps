@@ -7,42 +7,61 @@ import '../../styles/flight-reconstruction.css';
 const fmt=(v:unknown,d=1)=>finite(v)?v.toFixed(d):'—';
 const elapsed=(ms:number)=>{const s=Math.max(0,Math.floor(ms/1000));return [Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');};
 type Signal=keyof FlightTelemetry;
+// Cache long-flight paths; only the cursor and selected sample change on replay.
+// Min/max bucket rendering retains short-duration extrema such as landing load.
 function Plot({samples,index,keys,title,unit}:{samples:FlightSample[];index:number;keys:Signal[];title:string;unit:string}){
-  const from=samples[0].at,span=Math.max(1,samples[samples.length-1].at-from);
-  let lo=Infinity,hi=-Infinity;
-  for(const p of samples) for(const k of keys){const v=p.telemetry[k];if(finite(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}
-  if(!finite(lo))return <article><h3>{title}</h3><p>Channel unavailable</p></article>;
-  if(hi===lo){lo-=1;hi+=1;}
-  const colors=['#66d7ec','#edb971','#a6a2ff'];
-  const stride=Math.max(1,Math.ceil(samples.length/1500));
+  const keyId=keys.join('|');
+  const model=useMemo(()=>{
+    const from=samples[0].at,span=Math.max(1,samples[samples.length-1].at-from);
+    let lo=Infinity,hi=-Infinity;
+    for(const p of samples)for(const k of keys){const v=p.telemetry[k];if(finite(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}
+    if(!finite(lo))return null;if(hi===lo){lo-=1;hi+=1;}
+    const paths=keys.map(k=>{
+      let path='',connect=false,bucket=-1,minIndex=-1,maxIndex=-1;
+      const append=(i:number)=>{const p=samples[i],v=p.telemetry[k];if(!finite(v))return;path+=(connect?'L':'M')+(48+(p.at-from)/span*542).toFixed(2)+' '+(125-(v-lo)/(hi-lo)*110).toFixed(2)+' ';connect=true;};
+      const flush=()=>{if(minIndex<0)return;[...new Set([minIndex,maxIndex])].sort((a,b)=>a-b).forEach(append);minIndex=-1;maxIndex=-1;};
+      for(let i=0;i<samples.length;i++){
+        const p=samples[i],v=p.telemetry[k],b=Math.floor((p.at-from)/span*1000);
+        if(!finite(v)||(i>0&&p.at-samples[i-1].at>1000)){flush();connect=false;bucket=-1;if(!finite(v))continue;}
+        if(b!==bucket){flush();bucket=b;}
+        if(minIndex<0||v<(samples[minIndex].telemetry[k] as number))minIndex=i;
+        if(maxIndex<0||v>(samples[maxIndex].telemetry[k] as number))maxIndex=i;
+      }flush();return path;
+    });return {from,span,lo,hi,paths};
+  },[samples,keyId]);
+  if(!model)return <article><h3>{title}</h3><p>Channel unavailable</p></article>;
+  const {from,span,lo,hi,paths}=model,colors=['#66d7ec','#edb971','#a6a2ff'];
   return <article><h3>{title} <small>{unit}</small></h3><div className="xfr-legend">{keys.map((k,i)=><span key={k} style={{color:colors[i]}}>{k}: {fmt(samples[index].telemetry[k])}</span>)}</div>
     <svg viewBox="0 0 600 150" role="img" aria-label={title}>
       {[0,.25,.5,.75,1].map(f=><g key={f}><line x1="48" x2="590" y1={15+f*110} y2={15+f*110} stroke="#314559"/><text x="43" y={19+f*110} textAnchor="end" fill="#a9b9c7" fontSize="10">{fmt(hi-f*(hi-lo))}</text></g>)}
-      {keys.map((k,j)=>{let path='',connect=false;for(let i=0;i<samples.length;i++){const p=samples[i],v=p.telemetry[k];if(!finite(v)||(i>0&&p.at-samples[i-1].at>1000))connect=false;if(!finite(v)|| (i%stride!==0&&i!==index&&i!==samples.length-1))continue;path+=(connect?'L':'M')+(48+(p.at-from)/span*542)+' '+(125-(v-lo)/(hi-lo)*110)+' ';connect=true;}return <path key={k} d={path} stroke={colors[j]} strokeWidth="1.5" fill="none"/>;})}
+      {paths.map((d,i)=><path key={keys[i]} d={d} stroke={colors[i]} strokeWidth="1.5" fill="none"/>)}
       <line x1={48+(samples[index].at-from)/span*542} x2={48+(samples[index].at-from)/span*542} y1="8" y2="130" stroke="#fff" strokeDasharray="4 4"/>
       <text x="48" y="145" fill="#a9b9c7" fontSize="10">00:00</text><text x="590" y="145" textAnchor="end" fill="#a9b9c7" fontSize="10">{elapsed(span)}</text>
     </svg></article>;
 }
 function Trajectory({samples,index,mode,azimuth}:{samples:FlightSample[];index:number;mode:string;azimuth:number}){
-  const origin=samples.find(p=>finite(p.telemetry.latitudeDegrees)&&finite(p.telemetry.longitudeDegrees));
-  if(!origin)return <article><h3>Trajectory unavailable</h3><p>No valid geographic positions.</p></article>;
-  const a=azimuth*Math.PI/180;
-  const pts=samples.map(p=>{const d=displacement(origin.telemetry,p.telemetry);if(!d)return null;
-    const z=finite(p.telemetry.altitudeFeet)&&finite(origin.telemetry.altitudeFeet)?(p.telemetry.altitudeFeet-origin.telemetry.altitudeFeet)*.3048:null;
-    if(mode==='3D'&&z===null)return null;
-    return mode==='3D'?[d[0]*Math.cos(a)-d[1]*Math.sin(a),(d[0]*Math.sin(a)+d[1]*Math.cos(a))*.45+(z??0)]:d;});
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-  for(const p of pts)if(p){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);}
-  if(!finite(minX))return <article>Altitude unavailable for 3D view.</article>;
-  const scale=Math.max(1,(maxX-minX)/700,(maxY-minY)/310);
-  const point=(p:number[])=>[45+(p[0]-minX)/scale,350-(p[1]-minY)/scale];
-  let path='',connect=false;const stride=Math.max(1,Math.ceil(pts.length/6000));
-  pts.forEach((p,i)=>{if(!p||(i>0&&samples[i].at-samples[i-1].at>1000))connect=false;if(!p||i%stride!==0&&i!==index&&i!==pts.length-1)return;path+=(connect?'L':'M')+point(p).join(' ')+' ';connect=true;});
-  const selected=pts[index];const dot=selected?point(selected):null;
+  const model=useMemo(()=>{
+    const origin=samples.find(p=>finite(p.telemetry.latitudeDegrees)&&finite(p.telemetry.longitudeDegrees));if(!origin)return null;
+    const a=azimuth*Math.PI/180;
+    const project=(p:FlightSample)=>{const d=displacement(origin.telemetry,p.telemetry);if(!d)return null;
+      const z=finite(p.telemetry.altitudeFeet)&&finite(origin.telemetry.altitudeFeet)?(p.telemetry.altitudeFeet-origin.telemetry.altitudeFeet)*.3048:null;
+      if(mode==='3D'&&z===null)return null;
+      return mode==='3D'?[d[0]*Math.cos(a)-d[1]*Math.sin(a),(d[0]*Math.sin(a)+d[1]*Math.cos(a))*.45+(z??0)]:d;};
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(const sample of samples){const p=project(sample);if(p){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);}}
+    if(!finite(minX))return null;
+    const scale=Math.max(.01,(maxX-minX)/700,(maxY-minY)/310);
+    const point=(p:number[])=>[45+(p[0]-minX)/scale,350-(p[1]-minY)/scale];
+    let path='',connect=false;const stride=Math.max(1,Math.ceil(samples.length/6000));
+    for(let i=0;i<samples.length;i++){const p=project(samples[i]);if(!p||(i>0&&samples[i].at-samples[i-1].at>1000))connect=false;if(!p||i%stride!==0&&i!==samples.length-1)continue;path+=(connect?'L':'M')+point(p).map(v=>v.toFixed(2)).join(' ')+' ';connect=true;}
+    return {path,scale,project,point};
+  },[samples,mode,azimuth]);
+  if(!model)return <article><h3>Trajectory unavailable</h3><p>No valid position / altitude data.</p></article>;
+  const selected=model.project(samples[index]),dot=selected?model.point(selected):null;
   return <article><h3>{mode==='3D'?'3D route projection':'2D geographic track'} <small>Local azimuthal coordinates · metres</small></h3><svg viewBox="0 0 800 385" role="img" aria-label="Flight trajectory">
     {Array.from({length:9},(_,i)=><g key={i}><line x1={45+i*85} x2={45+i*85} y1="20" y2="350" stroke="#304459"/><line x1="45" x2="745" y1={20+i*41.25} y2={20+i*41.25} stroke="#304459"/></g>)}
-    <path d={path} stroke="#61cce6" strokeWidth="2" fill="none"/>{dot&&<circle cx={dot[0]} cy={dot[1]} r="6" fill="#efbf70" stroke="#fff"/>}
-    <text x="45" y="375" fontSize="11" fill="#b3c8d7">{fmt(scale*100,0)} m / 100 SVG units · {mode==='3D'?'orthographic oblique view':'north up'}</text>
+    <path d={model.path} stroke="#61cce6" strokeWidth="2" fill="none"/>{dot&&<circle cx={dot[0]} cy={dot[1]} r="6" fill="#efbf70" stroke="#fff"/>}
+    <text x="45" y="375" fontSize="11" fill="#b3c8d7">{fmt(model.scale*100,0)} m / 100 SVG units · {mode==='3D'?'oblique projection':'north up'}</text>
   </svg></article>;
 }
 export function FlightReconstruction(){
