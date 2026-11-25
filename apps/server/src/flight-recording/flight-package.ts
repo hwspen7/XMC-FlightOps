@@ -27,6 +27,7 @@ export class FlightPackageRecorder {
     }
     this.lastFresh = now;
     if (t.receivedAt === this.lastAt) return;
+    if (t.receivedAt < this.lastAt) this.finish('clock-reset');
     this.lastAt = t.receivedAt;
     if (!this.stream) {
       if (now < this.retryAt || !(t.onGround === 0 || (t.groundSpeedKnots ?? 0) >= 2)) return;
@@ -69,10 +70,11 @@ export class FlightPackageRecorder {
     if (!stream) return;
     const path = this.path, failed = this.failed;
     this.stream = null;
-    stream.end(JSON.stringify({ type: 'end', endedAt: Date.now(), samples: this.count, reason }) + '\n', () => {
+    stream.once('close', () => {
       if (failed || stream.errored) return;
       try { renameSync(path, path.slice(0, -'.partial'.length)); this.log('Flight package saved: ' + path.slice(0, -'.partial'.length)); }
       catch (err) { this.log('Flight archive finalization failed: ' + String(err)); }
     });
+    stream.end(JSON.stringify({ type: 'end', endedAt: Date.now(), samples: this.count, reason }) + '\n');
   }
 }

@@ -91,3 +91,37 @@ export function spectrum(s: readonly FlightSample[], key: 'nativeCommandRollRati
     return {hz:k*1000/(n*dt),power:(re*re+im*im)/(n*n)};
   });
 }
+
+// Estimated lag is cross-correlation of recorded command and rate samples, not
+// network latency or a proof of causal aircraft response.
+export function observedLag(s: readonly FlightSample[], axis:'Roll'|'Pitch') {
+  const xk=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
+  const yk=axis==='Roll'?'rollRateDegreesPerSecond':'pitchRateDegreesPerSecond';
+  if(s.length<40 || s.some(p=>!finite(p.telemetry[xk])||!finite(p.telemetry[yk])||p.telemetry.autopilotServosOn!==0))return null;
+  const dt=(s[s.length-1].at-s[0].at)/(s.length-1);
+  if(dt<=0||s.some((p,i)=>i>0&&Math.abs(p.at-s[i-1].at-dt)>dt*.2))return null;
+  let best=-1,bestLag=0;
+  for(let lag=0;lag<=Math.min(Math.floor(2000/dt),Math.floor(s.length/4));lag++){
+    const n=s.length-lag;
+    const x=s.slice(0,n).map(p=>p.telemetry[xk] as number),y=s.slice(lag).map(p=>p.telemetry[yk] as number);
+    const mx=x.reduce((a,b)=>a+b,0)/n,my=y.reduce((a,b)=>a+b,0)/n;
+    let xx=0,yy=0,xy=0;
+    for(let i=0;i<n;i++){const dx=x[i]-mx,dy=y[i]-my;xx+=dx*dx;yy+=dy*dy;xy+=dx*dy;}
+    const r=xx/n>1e-4&&yy/n>1e-3?Math.abs(xy/Math.sqrt(xx*yy)):0;
+    if(r>best){best=r;bestLag=lag;}
+  }
+  return best>=.5?{lagMs:bestLag*dt,correlation:best}:null;
+}
+export interface Runway { thresholdLat:number; thresholdLon:number; endLat:number; endLon:number; widthM:number; }
+export function runwayPosition(r:Runway,t:FlightTelemetry) {
+  if(![r.thresholdLat,r.endLat].every(x=>finite(x)&&Math.abs(x)<=90)||![r.thresholdLon,r.endLon].every(x=>finite(x)&&Math.abs(x)<=180)||!finite(r.widthM)||r.widthM<=0||r.widthM>200)return null;
+  const a={latitudeDegrees:r.thresholdLat,longitudeDegrees:r.thresholdLon} as FlightTelemetry;
+  const b={latitudeDegrees:r.endLat,longitudeDegrees:r.endLon} as FlightTelemetry;
+  const direction=displacement(a,b),p=displacement(a,t);
+  if(!direction||!p)return null;
+  const length=Math.hypot(...direction);if(length<100||length>10000)return null;
+  const [east,north]=direction;
+  const along=(p[0]*east+p[1]*north)/length;
+  const right=(p[0]*north-p[1]*east)/length;
+  return {length,along,right,remaining:length-along,inside:along>=0&&along<=length&&Math.abs(right)<=r.widthM/2};
+}
