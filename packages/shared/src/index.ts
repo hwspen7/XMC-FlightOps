@@ -125,6 +125,9 @@ export interface FlightTelemetry {
   nativeIasTrendKtMin: number | null;
   nativeAltitudeTrendFpm: number | null;
   nativeBankRmsDegrees: number | null;
+  // Native monotonic capture time and packet sequence; not UTC or simulator physics time.
+  nativeSampleTimeUs?: number | null;
+  nativeSampleSequence?: number | null;
   receivedAt: number | null;
 }
 
@@ -225,3 +228,15 @@ export interface SocketMessage<T = unknown> {
 
 export interface ArmRequest { pairingCode: string }
 export interface ServerNotice { message: string; severity: 'info' | 'error' }
+
+// Incremental IEEE CRC-32 over canonical UTF-8 JSONL bytes. Corruption check,
+// not a cryptographic authenticity signature.
+const archiveCrcTable = Uint32Array.from({length:256},(_,i)=>{
+  let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;return c>>>0;
+});
+export function archiveCrcUpdate(state:number,text:string):number{
+  let c=state>>>0;
+  for(const b of new TextEncoder().encode(text))c=archiveCrcTable[(c^b)&255]^(c>>>8);
+  return c>>>0;
+}
+export function archiveCrcHex(state:number):string{return ((state^0xffffffff)>>>0).toString(16).padStart(8,'0');}

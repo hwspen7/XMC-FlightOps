@@ -28,6 +28,10 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
   private previousAlertFlags: number | null = null;
   private readonly advisoryEvents: FlightAdvisoryEvent[] = [];
   private advisorySequence = 0;
+  private readonly snapshotListeners = new Set<(status: SimulatorStatus)=>void>();
+  onSnapshot(listener:(status:SimulatorStatus)=>void):()=>void {
+    this.snapshotListeners.add(listener);return ()=>{this.snapshotListeners.delete(listener);};
+  }
 
   onModuleInit(): void {
     if (settings.transport !== 'native') return;
@@ -41,6 +45,11 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       const decoded = parseNativeTelemetry(packet, settings.nativeToken);
       if (!decoded) return;
       const now = Date.now();
+      const seq=decoded.values.nativeSampleSequence,prevSeq=this.lastReport.nativeSampleSequence;
+      const sourceAt=decoded.values.nativeSampleTimeUs,prevSource=this.lastReport.nativeSampleTimeUs;
+      // Within a live stream, reject delayed/repeated datagrams. Permit a new
+      // native process after loss of heartbeat; the archive marks a restart.
+      if(now-this.lastTelemetryAt<2000 && seq!=null && prevSeq!=null && sourceAt!=null && prevSource!=null && (seq<=prevSeq || sourceAt<=prevSource))return;
       this.lastTelemetryAt = now;
       this.armedReported = decoded.armed;
       this.armErrorReported = decoded.armError;
@@ -72,7 +81,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
           const sentAt = this.pendingControlFrames.get(ack);
           if (sentAt !== undefined) {
             // One monotonic Node.js clock measures send -> C++ telemetry feedback.
-            // The native plugin reports an acknowledgement in its next 10 Hz
+            // The native plugin reports an acknowledgement in its next native
             // telemetry sample, so this is NOT actual one-way input latency.
             const elapsed = Number(process.hrtime.bigint() - sentAt) / 1_000_000;
             this.feedbackRoundTripMs = Math.round(elapsed * 10) / 10;
@@ -98,6 +107,7 @@ export class NativeBridgeService implements OnModuleInit, OnModuleDestroy {
       }
       // Every native sample is a complete snapshot. Unsupported datarefs remain null.
       this.lastReport = { ...emptyTelemetry(), ...decoded.values, receivedAt: now };
+      for(const listener of this.snapshotListeners){try{listener(this.status());}catch(error){this.logger.error('Native snapshot observer failed: '+String(error));}}
     });
     this.socket.bind(settings.nativeListenPort, settings.nativeListenHost);
     this.started = true;

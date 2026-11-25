@@ -15,6 +15,7 @@ export type NativeMetricField = keyof typeof NATIVE_METRIC_FIELDS;
 export type NativeMetricValues = Partial<Record<(typeof NATIVE_METRIC_FIELDS)[NativeMetricField], number>>;
 
 export const NATIVE_FIELDS = [
+  'nativeSampleTimeUs', 'nativeSampleSequence',
   'engineRunningLeft', 'engineRunningRight', 'selectedHeadingDegrees', 'selectedVerticalSpeedFpm', 'flightDirectorMode', 'autopilotHeadingMode', 'autopilotAltitudeMode', 'autopilotNavMode', 'autopilotApproachMode', 'navDeviationDots', 'glideslopeDeviationDots', 'electricalBusVolts', 'batteryVolts', 'generatorLeftOn', 'generatorRightOn', 'hydraulicPressure1Raw', 'hydraulicPressure2Raw', 'hydraulicFluid1Ratio', 'cabinAltitudeFeet', 'cabinDifferentialPsi', 'cabinVerticalSpeedFpm', 'pitotHeatOn', 'wingAntiIceOn', 'wingIceRatio', 'nativeRiskScore', 'nativeFlightPhase', 'nativeHandlingRisk', 'nativePropulsionRisk', 'nativeSystemsRisk', 'nativeApproachRisk', 'nativeAlertFlags', 'nativeEventCount', 'nativeAnalysisSamples', 'nativeIasTrendKtMin', 'nativeAltitudeTrendFpm', 'nativeBankRmsDegrees',
   'normalLoadG', 'outsideAirTempC', 'n2LeftPercent', 'n2RightPercent', 'egtLeftC', 'egtRightC', 'fuelFlowLeftKgS', 'fuelFlowRightKgS', 'oilPressureLeftPsi', 'oilPressureRightPsi', 'grossWeightKg', 'fuelWeightKg',
   'rollDegrees', 'pitchDegrees', 'headingDegrees', 'indicatedAirspeedKnots',
@@ -104,6 +105,7 @@ export function parseNativeTelemetry(packet: Buffer, token: string): NativeSampl
     if (!KEYS.has(key) || Object.prototype.hasOwnProperty.call(values, key) || value.length > 32 || value.trim() === '') return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
+    if ((key === 'nativeSampleTimeUs' || key === 'nativeSampleSequence') && (!Number.isSafeInteger(parsed) || parsed < 0)) return null;
     if ((NORMALIZED_CONTROL_FIELDS.has(key) && (parsed < -1.01 || parsed > 1.01)) ||
         ((key === 'rollOverrideState' || key === 'pitchOverrideState' || key === 'rudderOverrideState' ||
           key === 'reverseActive' || key === 'onGround' || key === 'autothrottleOn' || key === 'mouseYokeActive' ||
