@@ -125,3 +125,71 @@ export function runwayPosition(r:Runway,t:FlightTelemetry) {
   const right=(p[0]*north-p[1]*east)/length;
   return {length,along,right,remaining:length-along,inside:along>=0&&along<=length&&Math.abs(right)<=r.widthM/2};
 }
+
+// Describe a measured joystick readback step only if a clean, sustained
+// native-command step exists. This is not an aircraft closed-loop stability test.
+export function stepTracking(s:readonly FlightSample[],axis:'Roll'|'Pitch') {
+  const ck=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
+  const rk=axis==='Roll'?'simJoystickRollRatio':'simJoystickPitchRatio';
+  if(s.length<30)return null;
+  for(let i=s.length-21;i>=8;i--){
+    const before=s.slice(i-8,i),after=s.slice(i,i+21),all=[...before,...after];
+    if(all.some((p,j)=>!finite(p.telemetry[ck])||!finite(p.telemetry[rk])||
+      p.telemetry.autopilotServosOn!==0 || (j>0&&(p.at-all[j-1].at>250||p.at<=all[j-1].at))))continue;
+    const mean=(a:readonly FlightSample[],k:typeof ck|typeof rk)=>a.reduce((sum,p)=>sum+(p.telemetry[k] as number),0)/a.length;
+    const x0=mean(before,ck),x1=mean(after,ck),delta=x1-x0;
+    if(Math.abs(delta)<.15||before.some(p=>Math.abs((p.telemetry[ck] as number)-x0)>.025)||
+      after.some(p=>Math.abs((p.telemetry[ck] as number)-x1)>.025))continue;
+    const y0=mean(before,rk),steady=mean(after.slice(-5),rk),target=y0+delta;
+    if(Math.abs(y0-x0)>.08 || after.slice(-5).some(p=>Math.abs((p.telemetry[rk] as number)-steady)>.03))continue;
+    const normalized=after.map(p=>((p.telemetry[rk] as number)-y0)/delta);
+    const rise=normalized.findIndex(v=>v>=.9);
+    let settling=-1;
+    for(let j=0;j<normalized.length-4;j++){if(normalized.slice(j).every(v=>Math.abs(v-1)<=.05)){settling=j;break;}}
+    return {at:after[0].at,amplitude:delta,overshootPercent:Math.max(0,...normalized.map(v=>(v-1)*100)),steadyError:target-steady,
+      riseMs:rise<0?null:after[rise].at-after[0].at,settlingMs:settling<0?null:after[settling].at-after[0].at,
+      observationMs:after[after.length-1].at-after[0].at};
+  }
+  return null;
+}
+// Welch H1 estimate of command-to-body angular rate. Require three segments
+// of uninterrupted, near-uniform, manual control data. Low-excitation bins omitted.
+export function responseSpectrum(s:readonly FlightSample[],axis:'Roll'|'Pitch') {
+  const ck=axis==='Roll'?'nativeCommandRollRatio':'nativeCommandPitchRatio';
+  const rk=axis==='Roll'?'rollRateDegreesPerSecond':'pitchRateDegreesPerSecond';
+  const a=s.slice(-256),n=64,hop=32;
+  if(a.length<128 || a.some(p=>!finite(p.telemetry[ck])||!finite(p.telemetry[rk])||p.telemetry.autopilotServosOn!==0))return [];
+  const dt=(a[a.length-1].at-a[0].at)/(a.length-1);
+  if(dt<=0||a.some((p,i)=>i>0&&Math.abs(p.at-a[i-1].at-dt)>dt*.2))return [];
+  const sums=Array.from({length:n/2-1},()=>({xx:0,yy:0,re:0,im:0}));
+  let segments=0;
+  for(let off=0;off+n<=a.length;off+=hop){
+    const x=a.slice(off,off+n).map(p=>p.telemetry[ck] as number),y=a.slice(off,off+n).map(p=>p.telemetry[rk] as number);
+    const mx=x.reduce((u,v)=>u+v,0)/n,my=y.reduce((u,v)=>u+v,0)/n;
+    segments++;
+    for(let k=1;k<n/2;k++){
+      let xr=0,xi=0,yr=0,yi=0;
+      for(let j=0;j<n;j++){const w=.5-.5*Math.cos(2*Math.PI*j/(n-1)),c=Math.cos(2*Math.PI*k*j/n),si=-Math.sin(2*Math.PI*k*j/n);
+        xr+=(x[j]-mx)*w*c;xi+=(x[j]-mx)*w*si;yr+=(y[j]-my)*w*c;yi+=(y[j]-my)*w*si;}
+      const b=sums[k-1];b.xx+=xr*xr+xi*xi;b.yy+=yr*yr+yi*yi;b.re+=yr*xr+yi*xi;b.im+=yi*xr-yr*xi;
+    }
+  }
+  return sums.flatMap((b,i)=>{if(b.xx/segments<.01||b.yy/segments<.01)return [];
+    const coherence=Math.min(1,(b.re*b.re+b.im*b.im)/(b.xx*b.yy));
+    if(coherence<.5)return [];
+    return [{hz:(i+1)*1000/(n*dt),gain:Math.hypot(b.re,b.im)/b.xx,phaseDeg:Math.atan2(b.im,b.re)*180/Math.PI,coherence}];
+  });
+}
+// Rotation candidate: sustained positive pitch rate before observed liftoff.
+// A heuristic only, not a certified Vr or aircraft-specific rotation criterion.
+export function rotationCandidate(s:readonly FlightSample[],index:number):number|null {
+  if(index<2)return null;
+  for(let i=index-1;i>=1&&s[index].at-s[i].at<=15000;i--){
+    if(s[i].telemetry.onGround!==1 || s[i+1].at-s[i].at>1000)break;
+    const p=s[i].telemetry;
+    if(!finite(p.pitchRateDegreesPerSecond)||p.pitchRateDegreesPerSecond<1 || !finite(p.groundSpeedKnots)||p.groundSpeedKnots<30)continue;
+    const prior=s[i-1].telemetry.pitchRateDegreesPerSecond;
+    if(finite(prior)&&prior<1 && i+1<index && (s[i+1].telemetry.pitchRateDegreesPerSecond??0)>=1)return i;
+  }
+  return null;
+}
