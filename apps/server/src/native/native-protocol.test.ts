@@ -96,3 +96,9 @@ describe('native transport protocol', () => {
     expect(parseNativeTelemetry(Buffer.from(`XMT1|${TOKEN}|armed=1|nativeAckSeq=9007199254740992`), TOKEN)).toBeNull();
   });
 });
+
+it('validates optional native source clock and sequence',()=>{
+ const p=(s:string)=>parseNativeTelemetry(Buffer.from('XMT1|'+TOKEN+'|armed=0|'+s),TOKEN);
+ expect(p('nativeSampleTimeUs=123456789|nativeSampleSequence=42')?.values).toMatchObject({nativeSampleTimeUs:123456789,nativeSampleSequence:42});
+ expect(p('nativeSampleSequence=-1')).toBeNull();expect(p('nativeSampleTimeUs=1.5')).toBeNull();
+});

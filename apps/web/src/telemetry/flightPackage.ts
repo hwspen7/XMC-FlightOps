@@ -1,7 +1,7 @@
-import type { FlightTelemetry, ControlMonitor } from '@xplane/shared';
+import { archiveCrcUpdate, archiveCrcHex, type FlightTelemetry, type ControlMonitor } from '@xplane/shared';
 
 export interface FlightSample { type: 'sample'; at: number; telemetry: FlightTelemetry; control: ControlMonitor; }
-export interface FlightPackage { aircraft: string; source: string; samples: FlightSample[]; complete: boolean; reason: string; }
+export interface FlightPackage { aircraft: string; source: string; samples: FlightSample[]; complete: boolean; reason: string; integrity?: 'verified'|'legacy'|'incomplete'; }
 export const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 export function parseFlightPackage(raw: string): FlightPackage {
   return parseFlightLines(raw.split(/\r?\n/));
@@ -10,9 +10,10 @@ function parseFlightLines(lines:Iterable<string>):FlightPackage {
   const iterator=lines[Symbol.iterator]();
   let first=iterator.next();while(!first.done&&!first.value.trim())first=iterator.next();
   const header = JSON.parse(first.done?'{}':first.value);
+  let crc=archiveCrcUpdate(0xffffffff,first.done?'':first.value+'\n');
   if (header.type !== 'manifest' || header.schema !== 'xmc.flight-package.v1') throw Error('Unsupported flight package');
   const samples: FlightSample[] = [];
-  let end: { samples: number; reason: string } | null = null;
+  let end: { samples: number; reason: string; crc32?:string } | null = null;
   for (let next=iterator.next();!next.done;next=iterator.next()) {
     const line=next.value;if(!line.trim())continue;
     const p = JSON.parse(line);
@@ -22,11 +23,12 @@ function parseFlightLines(lines:Iterable<string>):FlightPackage {
     if (p.type !== 'sample' || !Number.isSafeInteger(p.at) || !p.telemetry || !p.control ||
         typeof p.telemetry !== 'object' || typeof p.control !== 'object' || Array.isArray(p.telemetry)||Array.isArray(p.control)||p.at<0 ||
         (samples.length && p.at <= samples[samples.length - 1].at)) throw Error('Invalid or unordered sample');
-    samples.push(p);
+    crc=archiveCrcUpdate(crc,line+'\n');samples.push(p);
   }
+  if(end&&header.integrity==='crc32-jsonl'&&end.crc32!==archiveCrcHex(crc))throw Error('Archive checksum mismatch');
   if (!samples.length || (end && end.samples !== samples.length)) throw Error('Missing samples or count mismatch');
   return { aircraft: typeof header.aircraftIcao === 'string' ? header.aircraftIcao : 'UNKNOWN',
-    source: String(header.source ?? 'unknown'), samples, complete: Boolean(end), reason: end?.reason ?? 'unfinalized' };
+    source: String(header.source ?? 'unknown'), samples, complete: Boolean(end), reason: end?.reason ?? 'unfinalized',integrity:!end?'incomplete':header.integrity==='crc32-jsonl'?'verified':'legacy' };
 }
 
 const rad = Math.PI / 180;
@@ -203,26 +205,29 @@ export function rotationCandidate(s:readonly FlightSample[],index:number):number
 // Stream text without a second complete raw string in memory. Retain full rows
 // for replay and expose explicit memory limits rather than silently decimating.
 export async function* fileLines(file:Blob):AsyncGenerator<string>{
-  const reader=file.stream().pipeThrough(new TextDecoderStream()).getReader();
+  const magic=new Uint8Array(await file.slice(0,2).arrayBuffer());
+  const bytes=magic[0]===31&&magic[1]===139?file.stream().pipeThrough(new DecompressionStream('gzip')):file.stream();
+  const reader=bytes.pipeThrough(new TextDecoderStream()).getReader();
   let tail='';
   try{while(true){const {done,value}=await reader.read();if(done)break;const parts=(tail+value).split('\n');tail=parts.pop()??'';if(tail.length>1_000_000)throw Error('Archive row too large');for(const line of parts)yield line.replace(/\r$/,'');}if(tail.trim())yield tail;}finally{reader.releaseLock();}
 }
 export async function importFlightFile(file:Blob):Promise<FlightPackage>{
-  let header:Record<string,unknown>|null=null,end:{samples:number;reason:string}|null=null;
+  let header:Record<string,unknown>|null=null,end:{samples:number;reason:string;crc32?:string}|null=null,crc=0xffffffff;
   const samples:FlightSample[]=[];
   for await(const line of fileLines(file)){
     if(!line.trim())continue;
     const p=JSON.parse(line);
     if(!p||typeof p!=='object'||Array.isArray(p))throw Error('Invalid archive row');
-    if(!header){if(p.type!=='manifest'||p.schema!=='xmc.flight-package.v1')throw Error('Unsupported flight package');header=p;continue;}
+    if(!header){if(p.type!=='manifest'||p.schema!=='xmc.flight-package.v1')throw Error('Unsupported flight package');header=p;crc=archiveCrcUpdate(crc,line+'\n');continue;}
     if(end)throw Error('Unexpected data after footer');
     if(p.type==='end'){if(!Number.isSafeInteger(p.samples)||typeof p.reason!=='string')throw Error('Invalid footer');end=p;continue;}
     if(p.type!=='sample'||!Number.isSafeInteger(p.at)||p.at<0||!p.telemetry||typeof p.telemetry!=='object'||Array.isArray(p.telemetry)||!p.control||typeof p.control!=='object'||Array.isArray(p.control)||(samples.length>0&&p.at<=samples[samples.length-1].at))throw Error('Invalid or unordered sample');
     if(samples.length>=500_000)throw Error('Replay memory limit: 500,000 samples. Original archive is intact.');
-    samples.push(p);
+    crc=archiveCrcUpdate(crc,line+'\n');samples.push(p);
   }
+  if(end&&header?.integrity==='crc32-jsonl'&&end.crc32!==archiveCrcHex(crc))throw Error('Archive checksum mismatch');
   if(!header||!samples.length||(end&&end.samples!==samples.length))throw Error('Missing samples or count mismatch');
-  return {aircraft:typeof header.aircraftIcao==='string'?header.aircraftIcao:'UNKNOWN',source:String(header.source??'unknown'),samples,complete:Boolean(end),reason:end?.reason??'unfinalized'};
+  return {aircraft:typeof header.aircraftIcao==='string'?header.aircraftIcao:'UNKNOWN',source:String(header.source??'unknown'),samples,complete:Boolean(end),reason:end?.reason??'unfinalized',integrity:!end?'incomplete':header.integrity==='crc32-jsonl'?'verified':'legacy'};
 }
 export function dataQuality(s:readonly FlightSample[]){
   let gaps=0,maxGap=0,missingPosition=0,missingControl=0,covered=0;
@@ -265,4 +270,15 @@ export function contactDetails(s:readonly FlightSample[],event:FlightEvent){
   const next=s[end+1],reverted=next&&next.at-s[end].at<=1000&&next.telemetry.onGround===1-ground;
   return {duration,classification:duration>=1000?'sustained':reverted?'transient':'unconfirmed',
     peakG:event.kind==='Touchdown'?s.slice(i,end+1).reduce<number|null>((m,p)=>finite(p.telemetry.normalLoadG)?Math.max(m??-Infinity,p.telemetry.normalLoadG):m,null):null};
+}
+
+// Prefer source sampling time for local numerical analysis only when all
+// samples have a coherent native clock and consecutive packet sequences.
+export function sourceTimedWindow(s:readonly FlightSample[]):FlightSample[]{
+  if(s.length<2)return [...s];
+  const first=s[0].telemetry.nativeSampleTimeUs;
+  if(!finite(first)||s.some((p,i)=>!finite(p.telemetry.nativeSampleTimeUs)||!finite(p.telemetry.nativeSampleSequence)||
+    (i>0&&((p.telemetry.nativeSampleSequence as number)!==(s[i-1].telemetry.nativeSampleSequence as number)+1||
+    (p.telemetry.nativeSampleTimeUs as number)<=(s[i-1].telemetry.nativeSampleTimeUs as number)))))return [];
+  return s.map(p=>({...p,at:((p.telemetry.nativeSampleTimeUs as number)-first)/1000}));
 }

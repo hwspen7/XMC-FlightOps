@@ -58,6 +58,8 @@ export class XPlaneService implements OnModuleInit, OnModuleDestroy {
     if (!settings.outputEnabled) this.logger.warn('X-Plane control output is disabled');
   }
 
+  onNativeSnapshot(listener:(status:SimulatorStatus)=>void):()=>void {return this.native.onSnapshot(listener);}
+
   status(): SimulatorStatus {
     if (settings.transport === 'native') return this.native.status();
     const now = Date.now();

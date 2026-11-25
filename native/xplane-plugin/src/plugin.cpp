@@ -13,6 +13,7 @@
 #include "XPLMProcessing.h"
 #include "XPLMUtilities.h"
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <memory>
@@ -47,6 +48,7 @@ void maybe_hide_mouse() {
     }
 }
 std::chrono::steady_clock::time_point last_telemetry{};
+std::uint64_t telemetry_sequence = 0;
 std::string override_state() {
     // Read-only diagnostics. Never change override ownership while probing.
     const auto read = [](const char* name) -> std::string {
@@ -166,10 +168,14 @@ float flight_loop(float, float, int, void*) {
     }
     if (!control.armed() && native_metrics.active()) native_metrics.on_disarm();
     const auto now = std::chrono::steady_clock::now();
-    if (now - last_telemetry >= std::chrono::milliseconds(50)) {
+    if (now - last_telemetry >= std::chrono::milliseconds(25)) {
         // Extend the authenticated telemetry snapshot with native ARM diagnostics.
         // The regular flight telemetry fields remain unchanged.
         std::string packet = telemetry.packet(config->token, control.armed());
+        // Timestamp the actual native snapshot, independent of network arrival jitter.
+        const auto capture_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+        packet += "|nativeSampleTimeUs=" + std::to_string(capture_us);
+        packet += "|nativeSampleSequence=" + std::to_string(++telemetry_sequence);
         packet += "|armError=";
         packet += control.arm_error();
         packet += std::string("|simPaused=") + (pause_guard.paused() ? "1" : "0");
