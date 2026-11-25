@@ -1,7 +1,7 @@
 import { archiveCrcUpdate, archiveCrcHex, type FlightTelemetry, type ControlMonitor } from '@xplane/shared';
 
 export interface FlightSample { type: 'sample'; at: number; telemetry: FlightTelemetry; control: ControlMonitor; }
-export interface FlightPackage { aircraft: string; source: string; samples: FlightSample[]; complete: boolean; reason: string; integrity?: 'verified'|'legacy'|'incomplete'; }
+export interface FlightPackage { aircraft: string; source: string; samples: FlightSample[]; complete: boolean; reason: string; integrity?: 'verified'|'legacy'|'incomplete'; totalSamples?:number; segment?:boolean; }
 export const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 export function parseFlightPackage(raw: string): FlightPackage {
   return parseFlightLines(raw.split(/\r?\n/));
@@ -213,7 +213,9 @@ export async function* fileLines(file:Blob):AsyncGenerator<string>{
   let tail='';
   try{while(true){const {done,value}=await reader.read();if(done)break;const parts=(tail+value).split('\n');tail=parts.pop()??'';if(tail.length>1_000_000)throw Error('Archive row too large');for(const line of parts)yield line.replace(/\r$/,'');}if(tail.trim())yield tail;}finally{reader.releaseLock();}
 }
-export async function importFlightFile(file:Blob):Promise<FlightPackage>{
+export async function importFlightFile(file:Blob,range?:{startMinutes:number;durationMinutes:number}):Promise<FlightPackage>{
+  if(range&&(!finite(range.startMinutes)||range.startMinutes<0||!finite(range.durationMinutes)||range.durationMinutes<=0))throw Error('Invalid replay interval');
+  let totalSamples=0,lastAt=-1,firstAt:number|null=null;
   let header:Record<string,unknown>|null=null,end:{samples:number;reason:string;crc32?:string}|null=null,crc=0xffffffff;
   const samples:FlightSample[]=[];
   for await(const line of fileLines(file)){
@@ -223,13 +225,16 @@ export async function importFlightFile(file:Blob):Promise<FlightPackage>{
     if(!header){if(p.type!=='manifest'||p.schema!=='xmc.flight-package.v1')throw Error('Unsupported flight package');header=p;crc=archiveCrcUpdate(crc,line+'\n');continue;}
     if(end)throw Error('Unexpected data after footer');
     if(p.type==='end'){if(!Number.isSafeInteger(p.samples)||typeof p.reason!=='string')throw Error('Invalid footer');end=p;continue;}
-    if(p.type!=='sample'||!Number.isSafeInteger(p.at)||p.at<0||!p.telemetry||typeof p.telemetry!=='object'||Array.isArray(p.telemetry)||!p.control||typeof p.control!=='object'||Array.isArray(p.control)||(samples.length>0&&p.at<=samples[samples.length-1].at))throw Error('Invalid or unordered sample');
+    if(p.type!=='sample'||!Number.isSafeInteger(p.at)||p.at<0||!p.telemetry||typeof p.telemetry!=='object'||Array.isArray(p.telemetry)||!p.control||typeof p.control!=='object'||Array.isArray(p.control)||(totalSamples>0&&p.at<=lastAt))throw Error('Invalid or unordered sample');
+    lastAt=p.at;firstAt??=p.at;totalSamples++;
+    crc=archiveCrcUpdate(crc,line+'\n');
+    if(range&&(p.at-firstAt<range.startMinutes*60000||p.at-firstAt>(range.startMinutes+range.durationMinutes)*60000))continue;
     if(samples.length>=500_000)throw Error('Replay memory limit: 500,000 samples. Original archive is intact.');
-    crc=archiveCrcUpdate(crc,line+'\n');samples.push(p);
+    samples.push(p);
   }
   if(end&&header?.integrity==='crc32-jsonl'&&end.crc32!==archiveCrcHex(crc))throw Error('Archive checksum mismatch');
-  if(!header||!samples.length||(end&&end.samples!==samples.length))throw Error('Missing samples or count mismatch');
-  return {aircraft:typeof header.aircraftIcao==='string'?header.aircraftIcao:'UNKNOWN',source:String(header.source??'unknown'),samples,complete:Boolean(end),reason:end?.reason??'unfinalized',integrity:!end?'incomplete':header.integrity==='crc32-jsonl'?'verified':'legacy'};
+  if(!header||!samples.length||(end&&end.samples!==totalSamples))throw Error('No samples in selected interval or archive count mismatch');
+  return {aircraft:typeof header.aircraftIcao==='string'?header.aircraftIcao:'UNKNOWN',source:String(header.source??'unknown'),samples,complete:Boolean(end),reason:end?.reason??'unfinalized',totalSamples,segment:Boolean(range),integrity:!end?'incomplete':header.integrity==='crc32-jsonl'?'verified':'legacy'};
 }
 export function dataQuality(s:readonly FlightSample[]){
   let gaps=0,maxGap=0,missingPosition=0,missingControl=0,covered=0;

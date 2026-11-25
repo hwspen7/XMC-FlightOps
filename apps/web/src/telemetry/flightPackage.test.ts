@@ -51,3 +51,8 @@ describe('precision and integrity',()=>{
   expect(signalQuality([sample(100,0),sample(200,0)],'Roll').rms).toBeCloseTo(.2);
  });
 });
+it('streams only a requested time interval while validating total count',async()=>{
+ const rows=[{type:'manifest',schema:'xmc.flight-package.v1'},sample(1000,0),sample(61000,0),sample(121000,1),{type:'end',samples:3,reason:'test'}];
+ const a=await importFlightFile(new Blob([rows.map(x=>JSON.stringify(x)).join('\n')]),{startMinutes:1,durationMinutes:.5});
+ expect(a.samples.map(p=>p.at)).toEqual([61000]);expect(a.totalSamples).toBe(3);expect(a.segment).toBe(true);
+});

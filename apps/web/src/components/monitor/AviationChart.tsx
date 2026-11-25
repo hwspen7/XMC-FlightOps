@@ -4,7 +4,7 @@ import type { HistoryPoint } from '../../hooks/useTelemetryHistory';
 import { CHART_MODES, bearingDegrees, clampZoom, deltaWorldX, isLikelyFaaCoverage, project, unproject, validGeo, visibleTiles, type AviationChartMode, type GeoPoint } from '../../telemetry/aviationMap';
 import '../../styles/aviation-chart.css';
 
-interface Props { t: FlightTelemetry; history: HistoryPoint[]; live: boolean }
+interface Props { t: FlightTelemetry; history: Pick<HistoryPoint,'at'|'latitude'|'longitude'>[]; live: boolean }
 const valid = (x:number|null|undefined):x is number=>typeof x==='number'&&Number.isFinite(x);
 const fmt=(x:number|null|undefined,digits=2)=>valid(x)?x.toFixed(digits):'—';
 
@@ -51,12 +51,12 @@ export function AviationChart({t,history,live}:Props) {
   const observedTrack=lastObserved&&lastMoving?bearingDegrees(
     {latitude:lastMoving.latitude!,longitude:lastMoving.longitude!},
     {latitude:lastObserved.latitude!,longitude:lastObserved.longitude!}):null;
-  let track=''; let last: {x:number;y:number}|null=null;
+  let track=''; let last: {x:number;y:number;at:number}|null=null;
   for(const p of trace) {
     const q=screen(p.latitude!,p.longitude!);
     if(!Number.isFinite(q.x)||!Number.isFinite(q.y)) continue;
-    track+=`${last && Math.abs(q.x-last.x)<dimensions.width/2?'L':'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)} `;
-    last=q;
+    track+=`${last && p.at-last.at<=1000 && Math.abs(q.x-last.x)<dimensions.width/2?'L':'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)} `;
+    last={...q,at:p.at};
   }
   const aircraftScreen=aircraft?screen(aircraft.latitude,aircraft.longitude):null;
   const updateMode=(next:AviationChartMode)=>{setMode(next);setFailed(false);setZoom(v=>clampZoom(next,v));};
@@ -85,7 +85,7 @@ export function AviationChart({t,history,live}:Props) {
     </div>
     <div className="xav-map" ref={viewport} onWheel={onWheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
       {canDraw&&tiles.map(tile=><img key={tile.id} src={tile.src} style={{left:tile.left,top:tile.top}} alt="" draggable={false} decoding="async" onError={()=>setFailed(true)}/>)}
-      {canDraw&&<svg className="xav-track" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} preserveAspectRatio="none" aria-label="Observed aircraft position and five-minute ground track">
+      {canDraw&&<svg className="xav-track" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} preserveAspectRatio="none" aria-label="Observed aircraft position and recorded ground track">
         <path d={track} fill="none" stroke="#081722" strokeWidth="5" strokeLinejoin="round" opacity=".85"/>
         <path d={track} fill="none" stroke="#11c2e8" strokeWidth="2.6" strokeLinejoin="round"/>
         {aircraftScreen&&<g transform={`translate(${aircraftScreen.x} ${aircraftScreen.y}) rotate(${valid(t.headingDegrees)?t.headingDegrees:0})`}>
