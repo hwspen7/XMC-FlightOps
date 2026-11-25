@@ -229,9 +229,10 @@ export async function importFlightFile(file:Blob,range?:{startMinutes:number;dur
     if(end)throw Error('Unexpected data after footer');
     if(p.type==='end'){if(!Number.isSafeInteger(p.samples)||typeof p.reason!=='string')throw Error('Invalid footer');end=p;continue;}
     if(p.type!=='sample'||!Number.isSafeInteger(p.at)||p.at<0||!p.telemetry||typeof p.telemetry!=='object'||Array.isArray(p.telemetry)||!p.control||typeof p.control!=='object'||Array.isArray(p.control)||(totalSamples>0&&p.at<=lastAt))throw Error('Invalid or unordered sample');
-    lastAt=p.at;firstAt??=p.at;totalSamples++;
+    lastAt=p.at;const originAt:number=firstAt??Number(p.at);firstAt=originAt;totalSamples++;
     crc=archiveCrcUpdate(crc,line+'\n');
-    if(range&&(p.at-firstAt<range.startMinutes*60000||p.at-firstAt>(range.startMinutes+range.durationMinutes)*60000))continue;
+    const relativeMs=Number(p.at)-originAt;
+    if(range&&(relativeMs<range.startMinutes*60000||relativeMs>(range.startMinutes+range.durationMinutes)*60000))continue;
     if(samples.length>=500_000)throw Error('Replay memory limit: 500,000 samples. Original archive is intact.');
     samples.push(p);
   }
