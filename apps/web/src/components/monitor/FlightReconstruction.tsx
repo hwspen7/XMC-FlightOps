@@ -1,0 +1,70 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { FlightTelemetry } from '@xplane/shared';
+import { AttitudeModel3D } from './AttitudeModel3D';
+import { controlMetrics, displacement, distance, finite, flightEvents, parseFlightPackage, phase, spectrum, type FlightPackage, type FlightSample } from '../../telemetry/flightPackage';
+import '../../styles/flight-reconstruction.css';
+
+const fmt=(v:unknown,d=1)=>finite(v)?v.toFixed(d):'—';
+const elapsed=(ms:number)=>{const s=Math.max(0,Math.floor(ms/1000));return [Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');};
+type Signal=keyof FlightTelemetry;
+function Plot({samples,index,keys,title,unit}:{samples:FlightSample[];index:number;keys:Signal[];title:string;unit:string}){
+  const from=samples[0].at,span=Math.max(1,samples[samples.length-1].at-from);
+  let lo=Infinity,hi=-Infinity;
+  for(const p of samples) for(const k of keys){const v=p.telemetry[k];if(finite(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}
+  if(!finite(lo))return <article><h3>{title}</h3><p>Channel unavailable</p></article>;
+  if(hi===lo){lo-=1;hi+=1;}
+  const colors=['#66d7ec','#edb971','#a6a2ff'];
+  const stride=Math.max(1,Math.ceil(samples.length/1500));
+  return <article><h3>{title} <small>{unit}</small></h3><div className="xfr-legend">{keys.map((k,i)=><span key={k} style={{color:colors[i]}}>{k}: {fmt(samples[index].telemetry[k])}</span>)}</div>
+    <svg viewBox="0 0 600 150" role="img" aria-label={title}>
+      {[0,.25,.5,.75,1].map(f=><g key={f}><line x1="48" x2="590" y1={15+f*110} y2={15+f*110} stroke="#314559"/><text x="43" y={19+f*110} textAnchor="end" fill="#a9b9c7" fontSize="10">{fmt(hi-f*(hi-lo))}</text></g>)}
+      {keys.map((k,j)=>{let path='',connect=false;for(let i=0;i<samples.length;i++){const p=samples[i],v=p.telemetry[k];if(!finite(v)||(i>0&&p.at-samples[i-1].at>1000))connect=false;if(!finite(v)|| (i%stride!==0&&i!==index&&i!==samples.length-1))continue;path+=(connect?'L':'M')+(48+(p.at-from)/span*542)+' '+(125-(v-lo)/(hi-lo)*110)+' ';connect=true;}return <path key={k} d={path} stroke={colors[j]} strokeWidth="1.5" fill="none"/>;})}
+      <line x1={48+(samples[index].at-from)/span*542} x2={48+(samples[index].at-from)/span*542} y1="8" y2="130" stroke="#fff" strokeDasharray="4 4"/>
+      <text x="48" y="145" fill="#a9b9c7" fontSize="10">00:00</text><text x="590" y="145" textAnchor="end" fill="#a9b9c7" fontSize="10">{elapsed(span)}</text>
+    </svg></article>;
+}
+function Trajectory({samples,index,mode,azimuth}:{samples:FlightSample[];index:number;mode:string;azimuth:number}){
+  const origin=samples.find(p=>finite(p.telemetry.latitudeDegrees)&&finite(p.telemetry.longitudeDegrees));
+  if(!origin)return <article><h3>Trajectory unavailable</h3><p>No valid geographic positions.</p></article>;
+  const a=azimuth*Math.PI/180;
+  const pts=samples.map(p=>{const d=displacement(origin.telemetry,p.telemetry);if(!d)return null;
+    const z=finite(p.telemetry.altitudeFeet)&&finite(origin.telemetry.altitudeFeet)?(p.telemetry.altitudeFeet-origin.telemetry.altitudeFeet)*.3048:null;
+    if(mode==='3D'&&z===null)return null;
+    return mode==='3D'?[d[0]*Math.cos(a)-d[1]*Math.sin(a),(d[0]*Math.sin(a)+d[1]*Math.cos(a))*.45+(z??0)]:d;});
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const p of pts)if(p){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);}
+  if(!finite(minX))return <article>Altitude unavailable for 3D view.</article>;
+  const scale=Math.max(1,(maxX-minX)/700,(maxY-minY)/310);
+  const point=(p:number[])=>[45+(p[0]-minX)/scale,350-(p[1]-minY)/scale];
+  let path='',connect=false;const stride=Math.max(1,Math.ceil(pts.length/6000));
+  pts.forEach((p,i)=>{if(!p||(i>0&&samples[i].at-samples[i-1].at>1000))connect=false;if(!p||i%stride!==0&&i!==index&&i!==pts.length-1)return;path+=(connect?'L':'M')+point(p).join(' ')+' ';connect=true;});
+  const selected=pts[index];const dot=selected?point(selected):null;
+  return <article><h3>{mode==='3D'?'3D route projection':'2D geographic track'} <small>Local azimuthal coordinates · metres</small></h3><svg viewBox="0 0 800 385" role="img" aria-label="Flight trajectory">
+    {Array.from({length:9},(_,i)=><g key={i}><line x1={45+i*85} x2={45+i*85} y1="20" y2="350" stroke="#304459"/><line x1="45" x2="745" y1={20+i*41.25} y2={20+i*41.25} stroke="#304459"/></g>)}
+    <path d={path} stroke="#61cce6" strokeWidth="2" fill="none"/>{dot&&<circle cx={dot[0]} cy={dot[1]} r="6" fill="#efbf70" stroke="#fff"/>}
+    <text x="45" y="375" fontSize="11" fill="#b3c8d7">{fmt(scale*100,0)} m / 100 SVG units · {mode==='3D'?'orthographic oblique view':'north up'}</text>
+  </svg></article>;
+}
+export function FlightReconstruction(){
+  const [archive,setArchive]=useState<FlightPackage|null>(null),[error,setError]=useState(''),[index,setIndex]=useState(0),[playing,setPlaying]=useState(false),[speed,setSpeed]=useState(1);
+  const [tab,setTab]=useState('reconstruction'),[mode,setMode]=useState('2D'),[azimuth,setAzimuth]=useState(35);
+  const samples=archive?.samples??[];
+  const events=useMemo(()=>flightEvents(samples),[archive]);
+  const s=samples[index],t=s?.telemetry;
+  useEffect(()=>{if(!playing||!archive||!s)return;const start=performance.now(),at=s.at;const timer=setInterval(()=>{const target=at+(performance.now()-start)*speed;let lo=0,hi=archive.samples.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(archive.samples[mid].at<=target)lo=mid;else hi=mid-1;}setIndex(lo);if(lo===archive.samples.length-1)setPlaying(false);},50);return()=>clearInterval(timer);},[playing,archive,speed]);
+  const pick=(i:number)=>{setPlaying(false);setIndex(i);};
+  const window=useMemo(()=>samples.slice(Math.max(0,index-125),index+126),[archive,index]);
+  const roll=useMemo(()=>controlMetrics(window,'Roll'),[window]),pitch=useMemo(()=>controlMetrics(window,'Pitch'),[window]);
+  return <main className="xfr"><header><h1>Flight reconstruction &amp; engineering</h1><p>One recorded flight · shared timeline · simulator observations only</p></header>
+    <div className="xfr-toolbar"><label>OPEN FLIGHT PACKAGE <input type="file" accept=".jsonl,.partial" onChange={async e=>{const f=e.currentTarget.files?.[0];if(!f)return;try{if(f.size>256*1024*1024)throw Error('Archive exceeds browser import limit (256 MiB)');const a=parseFlightPackage(await f.text());setPlaying(false);setArchive(a);setIndex(0);setError('');}catch(err){setError(String(err));}}}/></label>{archive&&<span>{archive.aircraft} · {archive.source} · {samples.length.toLocaleString()} samples · {archive.complete?archive.reason:'INCOMPLETE FILE'}</span>}</div>
+    {error&&<p role="alert">{error}</p>}
+    {!s||!t?<article><h3>Import a recorded flight</h3><p>The server saves .xmc.jsonl files under flight-archives automatically when aircraft movement is observed. Finalized files can be opened here; no demonstration data is substituted.</p></article>:<>
+      <nav>{[['reconstruction','Flight Reconstruction'],['controls','Flight Control Engineering'],['runway','Takeoff & Landing']].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
+      <div className="xfr-toolbar"><button onClick={()=>{if(index===samples.length-1)setIndex(0);setPlaying(!playing);}}>{playing?'Pause':'Play'}</button><select value={speed} onChange={e=>setSpeed(Number(e.target.value))}>{[.25,.5,1,2,4,16].map(v=><option key={v} value={v}>{v}×</option>)}</select><input aria-label="Replay position" type="range" min="0" max={samples.length-1} value={index} onChange={e=>pick(Number(e.target.value))}/><strong>{elapsed(s.at-samples[0].at)} / {elapsed(samples[samples.length-1].at-samples[0].at)}</strong><span>{phase(t)} · IAS {fmt(t.indicatedAirspeedKnots)} kt · AGL {fmt(t.aglFeet,0)} ft</span></div>
+      {tab==='reconstruction'&&<><div className="xfr-toolbar">{['2D','3D'].map(v=><button key={v} aria-pressed={mode===v} onClick={()=>setMode(v)}>{v}</button>)}{mode==='3D'&&<label>Orbit <input type="range" min="0" max="360" value={azimuth} onChange={e=>setAzimuth(Number(e.target.value))}/></label>}</div><div className="xfr-grid"><Trajectory samples={samples} index={index} mode={mode} azimuth={azimuth}/><AttitudeModel3D telemetry={t} live={true}/><Plot samples={samples} index={index} keys={['altitudeFeet','aglFeet']} title="Vertical profile" unit="ft"/><Plot samples={samples} index={index} keys={['indicatedAirspeedKnots','groundSpeedKnots']} title="Speed" unit="kt"/></div></>}
+      {(tab==='controls'||tab==='reconstruction')&&<div className="xfr-grid"><article><h3>Control stick · native command</h3><svg viewBox="0 0 250 180" role="img" aria-label="Recorded stick position"><rect x="55" y="20" width="140" height="140" fill="#122638" stroke="#587286"/><path d="M55 90 H195 M125 20 V160" stroke="#7892a4" strokeDasharray="4 4"/>{finite(t.nativeCommandRollRatio)&&finite(t.nativeCommandPitchRatio)&&<circle cx={125+t.nativeCommandRollRatio*70} cy={90-t.nativeCommandPitchRatio*70} r="8" fill="#63d0e8"/>}</svg><p>Roll {fmt(t.nativeCommandRollRatio,3)} · Pitch {fmt(t.nativeCommandPitchRatio,3)} · Phone roll {fmt(s.control.inputRoll,3)} · Phone pitch {fmt(s.control.inputPitch,3)}</p></article><article><h3>Observed control diagnostics</h3><p>Local window: {window.length} samples</p><table><thead><tr><th>Axis</th><th>RMS error</th><th>Mean bias</th><th>Peak error</th><th>Regression gain</th></tr></thead><tbody>{[['Roll',roll],['Pitch',pitch]].map(([label,m])=>{const v=m as typeof roll;return <tr key={String(label)}><th>{String(label)}</th><td>{fmt(v.rms,3)}</td><td>{fmt(v.bias,3)}</td><td>{fmt(v.peak,3)}</td><td>{fmt(v.gain,3)}</td></tr>})}</tbody></table><p>Observed tracking only; physical stability, overshoot and settling time require a controlled excitation and matched response.</p></article></div>}
+      {tab==='controls'&&<div className="xfr-grid"><Plot samples={samples} index={index} keys={['nativeCommandRollRatio','simJoystickRollRatio','effectiveRollRatio']} title="Roll command / readback" unit="ratio"/><Plot samples={samples} index={index} keys={['nativeCommandPitchRatio','simJoystickPitchRatio','effectivePitchRatio']} title="Pitch command / readback" unit="ratio"/><Plot samples={samples} index={index} keys={['rollRateDegreesPerSecond','pitchRateDegreesPerSecond','yawRateDegreesPerSecond']} title="Body angular rates" unit="deg/s"/><Plot samples={samples} index={index} keys={['rollDegrees','pitchDegrees']} title="Aircraft attitude response" unit="deg"/><Plot samples={samples} index={index} keys={['rudderRatio','throttleRatio','wheelBrakeRatio']} title="Other controls" unit="ratio"/><article><h3>Input spectrum · rolling window</h3>{(['nativeCommandRollRatio','nativeCommandPitchRatio'] as const).map(k=>{const bins=spectrum(window,k);const max=bins.reduce((m,b)=>Math.max(m,b.power),0);return <div key={k}><small>{k}</small>{!bins.length?<p>Insufficient regular samples</p>:<svg viewBox="0 0 600 110"><path d={bins.map((b,i)=>(i?'L':'M')+(20+i/Math.max(1,bins.length-1)*560)+' '+(90-(max?b.power/max:0)*75)).join(' ')} stroke="#64cbe2" fill="none"/><text x="580" y="105" textAnchor="end" fill="#b3c8d7" fontSize="11">{fmt(bins[bins.length-1].hz)} Hz</text></svg>}</div>})}<p>Input power only, not a validated transfer function.</p></article></div>}
+      {tab==='runway'&&<><article><h3>Observed ground-contact transitions</h3><p>Aircraft-level on-ground flag; event precision is the sample bracket, not individual wheel contact.</p><table><thead><tr><th>Event</th><th>Time</th><th>Bracket</th><th>IAS</th><th>Pitch</th><th>Prior VSI</th><th>G</th><th>Ground path</th></tr></thead><tbody>{events.map(e=>{const p=samples[e.index],before=samples[e.index-1];let start=e.index-1,end=e.index;if(e.kind==='Liftoff'){while(start>0&&samples[start-1].telemetry.onGround===1&&samples[start-1].at>p.at-180000)start--;}else{while(end+1<samples.length&&samples[end+1].telemetry.onGround===1&&samples[end+1].at<p.at+180000&&(samples[end].telemetry.groundSpeedKnots??0)>2)end++;}const d=distance(samples,e.kind==='Liftoff'?start:e.index,e.kind==='Liftoff'?e.index-1:end);return <tr key={e.index}><td><button onClick={()=>pick(e.index)}>{e.kind}</button></td><td>{elapsed(p.at-samples[0].at)}</td><td>{e.bracketMs} ms</td><td>{fmt(p.telemetry.indicatedAirspeedKnots)} kt</td><td>{fmt(p.telemetry.pitchDegrees)}°</td><td>{fmt(before.telemetry.verticalSpeedFpm,0)} fpm</td><td>{fmt(p.telemetry.normalLoadG,2)}</td><td>{fmt(d,0)} m*</td></tr>})}</tbody></table><p>* Ground path includes observed taxi movement, not certified runway distance. Runway identity and wheel geometry are unavailable in the current protocol.</p></article><div className="xfr-grid"><Trajectory samples={window} index={Math.min(index,125)} mode={mode} azimuth={azimuth}/><Plot samples={window} index={Math.min(index,125)} keys={['aglFeet']} title="Local approach / climb" unit="ft"/><Plot samples={window} index={Math.min(index,125)} keys={['verticalSpeedFpm']} title="Vertical speed" unit="ft/min"/><Plot samples={window} index={Math.min(index,125)} keys={['normalLoadG']} title="Normal load" unit="g"/><Plot samples={window} index={Math.min(index,125)} keys={['pitchDegrees','rollDegrees']} title="Contact attitude" unit="deg"/><Plot samples={window} index={Math.min(index,125)} keys={['groundSpeedKnots']} title="Ground speed" unit="kt"/></div></>}
+    </>}
+  </main>;
+}

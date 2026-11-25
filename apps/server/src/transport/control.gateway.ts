@@ -1,5 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ControllerSession } from './controller-session';
+import { FlightPackageRecorder } from '../flight-recording/flight-package';
 import { FlightRecorder } from '../flight-recording/flight-recorder';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import type { ArmRequest, ServerNotice, ServerStatus, SocketMessage } from '@xplane/shared';
@@ -18,6 +19,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   private readonly session = new ControllerSession();
   private sessionClient: WebSocket | null = null;
   private readonly recording = new FlightRecorder();
+  private readonly flightPackage = new FlightPackageRecorder(undefined, message => this.logger.log(message));
 
   @WebSocketServer() server!: Server;
 
@@ -152,6 +154,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
   }
 
   private tick(): void {
+    this.flightPackage.capture(this.simulator.status(), this.control.metrics());
     if (this.recording.status().active) {
       this.recording.capture(this.simulator.status(), this.control.metrics());
       if (!this.control.isArmed()) this.recording.stop();
@@ -211,6 +214,7 @@ export class ControlGateway implements OnGatewayConnection, OnGatewayDisconnect,
 
   onModuleDestroy(): void {
     clearInterval(this.clock);
+    this.flightPackage.finish();
     this.control.suspend();
     this.recording.stop();
   }

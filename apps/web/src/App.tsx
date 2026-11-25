@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { MobileCockpit } from './views/MobileCockpit';
 import { useFlightController } from './hooks/useFlightController';
 import { useViewMode } from './hooks/useViewMode';
+import { FlightReconstruction } from './components/monitor/FlightReconstruction';
 import { OperationsSuite } from './components/monitor/OperationsSuite';
 import { ProfessionalDashboard } from './components/monitor/ProfessionalDashboard';
 import './styles/systems-health.css';
 import './styles/monitor-layout-refinement.css';
 import './styles/professional-dashboard.css';
 
-type Workspace = 'overview' | 'operations';
+type Workspace = 'overview' | 'operations' | 'reconstruction';
 
 function DesktopWorkspace({ flight, onMobile }: { flight: ReturnType<typeof useFlightController>; onMobile: () => void }) {
   const [page, setPage] = useState<Workspace>('overview');
@@ -16,7 +17,7 @@ function DesktopWorkspace({ flight, onMobile }: { flight: ReturnType<typeof useF
   return <div className="xpd-workspace">
     <nav className="xpd-workspace-nav" aria-label="Desktop flight monitoring sections">
       <div className="xpd-workspace-brand">✈ XPLANE MOTION CONTROLLER</div>
-      {([['overview', '01 · LIVE OVERVIEW'], ['operations', '02 · OPERATIONS']] as const).map(([id, label]) =>
+      {([['overview', '01 · LIVE OVERVIEW'], ['operations', '02 · OPERATIONS'], ['reconstruction', 'FLIGHT RECONSTRUCTION']] as const).map(([id, label]) =>
         <button type="button" key={id} className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{label}</button>
       )}
       <span className={connected && serverStatus.simulator.telemetryFresh ? 'xpd-live' : 'xpd-not-live'}>{connected && serverStatus.simulator.telemetryFresh ? '● LIVE SIMULATOR FEED' : '○ DATA UNAVAILABLE'}</span>
@@ -28,6 +29,7 @@ function DesktopWorkspace({ flight, onMobile }: { flight: ReturnType<typeof useF
     <div hidden={page !== 'operations'} className="xpd-workspace-page">
       <OperationsSuite status={serverStatus} connected={connected} onMobile={onMobile}/>
     </div>
+    <div hidden={page !== 'reconstruction'} className="xpd-workspace-page"><FlightReconstruction/></div>
   </div>;
 }
 

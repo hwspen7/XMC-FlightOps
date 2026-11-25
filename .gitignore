@@ -21,3 +21,6 @@ certs/
 
 # Local patch snapshots; preserve locally, never commit.
 *.bak
+
+# Local simulator flight packages
+flight-archives/

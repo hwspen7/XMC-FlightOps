@@ -120,6 +120,12 @@ Motion-sensor access requires a secure browser context. On a trusted local netwo
 
 Replace the example address with your computer's actual private LAN address, follow the script's certificate-trust instructions, and open the displayed `https://` URL in iPhone Safari. Control output remains disabled until explicitly configured.
 
+### Automatic flight packages and reconstruction
+
+The gateway records distinct observed telemetry snapshots independently of controller arming, beginning at observed airborne state or ground movement (2 kt). Packages are saved as streaming `.xmc.jsonl` files under `flight-archives/` (override with `XMC_FLIGHT_ARCHIVE_DIR`). A session ends after two minutes stopped following airborne observation, five minutes for ground-only sessions, two minutes of lost telemetry, or server shutdown. Interrupted or unfinalized archives may retain a `.partial` suffix. Raw snapshots include available telemetry, controller state, native diagnostics, advisories and field coverage; no pairing secrets or session tickets are recorded. This is observational gateway sampling, not simulator-frame recording. Files remain local to the server; manage retention and disk space yourself.
+
+Open **Flight Reconstruction** in the desktop web app and import a flight package from disk. The shared timeline drives 2D geographic track, oblique 3D projection, attitude, flight control tracking and takeoff/landing transition analysis. Import is limited to 256 MiB; large archives can be processed externally. Ground-contact events are bounded by sample intervals and do not identify individual wheels. Ground path is not runway-specific distance. Input spectra and tracking regression are exploratory, not certified aircraft dynamics or stability identification.
+
 ### Flight debrief export
 
 Use the recorder's **EXPORT PYTHON JSON** option, then generate an offline report:
